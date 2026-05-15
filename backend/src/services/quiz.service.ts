@@ -17,6 +17,7 @@ import {
   QuizSubmissionRequest,
   StoredQuizResult,
 } from '../types';
+import * as persistenceService from './persistence.service';
 
 const VALID_STUDENT_IDS = new Set(
   mockStudentProfiles.map((s) => s.studentId)
@@ -57,6 +58,7 @@ export function submitDemoQuiz(
 
   const evaluatedAnswers: Array<{
     questionId: string;
+    selectedOptionId?: string;
     isCorrect: boolean;
     isSkipped: boolean;
     timeSpentSeconds: number;
@@ -71,6 +73,7 @@ export function submitDemoQuiz(
       skippedCount++;
       evaluatedAnswers.push({
         questionId: question.questionId,
+        selectedOptionId: normalized.selectedOptionId,
         isCorrect: false,
         isSkipped: true,
         timeSpentSeconds: normalized.timeSpentSeconds,
@@ -99,6 +102,7 @@ export function submitDemoQuiz(
 
     evaluatedAnswers.push({
       questionId: question.questionId,
+      selectedOptionId: normalized.selectedOptionId,
       isCorrect,
       isSkipped: false,
       timeSpentSeconds: normalized.timeSpentSeconds,
@@ -148,6 +152,19 @@ export function submitDemoQuiz(
   };
 
   saveQuizResult(stored);
+
+  void persistenceService.saveQuizSubmission(
+    stored,
+    evaluatedAnswers.map((answer) => ({
+      questionId: answer.questionId,
+      selectedOptionId: answer.selectedOptionId,
+      isCorrect: answer.isCorrect,
+      skipped: answer.isSkipped,
+      timeSpentSeconds: answer.timeSpentSeconds,
+      topic: answer.topic,
+    })),
+    getStudentName(request.studentId)
+  );
 
   return response;
 }

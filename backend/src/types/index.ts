@@ -186,6 +186,7 @@ export interface TeacherReport extends AiMetadata {
   systemRecommendation: string;
   aiTeacherNote: string;
   reportSource: 'live' | 'default';
+  persisted?: boolean;
 }
 
 // --- Puq.ai / health ---

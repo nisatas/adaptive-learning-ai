@@ -1,57 +1,24 @@
 import { TeacherInsightInput, TeacherInsightReport } from '../types';
+import {
+  buildBehaviorObservation,
+  buildSystemRecommendation,
+} from './teacherReportLanguage';
 
 /**
  * Rule-based ethical teacher report when Puq.ai is unavailable.
- * Avoids medical/psychological diagnosis language.
+ * Uses observable quiz metrics only.
  */
 export function buildFallbackTeacherReport(
   input: TeacherInsightInput
 ): TeacherInsightReport {
-  const observations: string[] = [];
-  const recommendations: string[] = [];
+  const behaviorObservation = buildBehaviorObservation(input);
+  const systemRecommendation = buildSystemRecommendation(input);
 
-  if (input.skippedCount > 0) {
-    observations.push(
-      `${input.skippedCount} soru atlanmış; öğrenci bu konularda ek destek gerektirebilir.`
-    );
-    recommendations.push(
-      'Atlanan konular için kısa tekrar ve örnek soru çözümü önerilir.'
-    );
-  }
-
-  if (input.wrongCount > 0) {
-    observations.push(
-      `${input.wrongCount} yanlış cevap tespit edildi; kavram pekiştirme faydalı olabilir.`
-    );
-  }
-
-  if (input.slowQuestionIds && input.slowQuestionIds.length > 0) {
-    observations.push(
-      'Öğrenci bazı sorularda daha fazla zamana ihtiyaç duymuş olabilir.'
-    );
-    const topicHint = input.mostDifficultTopic
-      ? ` ${input.mostDifficultTopic} konusunda`
-      : '';
-    recommendations.push(
-      `Bir sonraki derste${topicHint} adım adım örnek çözüm ve kısa tekrar önerilir.`
-    );
-  }
+  const observations: string[] = [behaviorObservation];
 
   if (input.hesitationCount && input.hesitationCount > 0) {
     observations.push(
-      'Bazı sorularda cevap vermeden önce daha uzun düşünme süresi gözlemlendi.'
-    );
-    recommendations.push(
-      'Sakin tempo ile ilerleyen mini alıştırmalar ve görsel özetler kullanılabilir.'
-    );
-  }
-
-  if (observations.length === 0) {
-    observations.push(
-      'Quiz tamamlandı; genel performans dengeli görünüyor.'
-    );
-    recommendations.push(
-      'Öğrenciye bir sonraki konuda kısa pekiştirme aktivitesi verilebilir.'
+      `${input.hesitationCount} soruda cevap vermeden önce daha uzun süre harcanmıştır.`
     );
   }
 
@@ -62,13 +29,13 @@ export function buildFallbackTeacherReport(
 
   const summary =
     input.quizTitle
-      ? `"${input.quizTitle}" quizi sonucunda öğrenci %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor yargılayıcı etiket içermez.`
-      : `Öğrenci quiz sonucunda %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor yargılayıcı etiket içermez.`;
+      ? `"${input.quizTitle}" quizi tamamlandı: ${input.correctCount} doğru, ${input.wrongCount} yanlış, ${input.skippedCount} boş (${accuracy}% doğruluk).`
+      : `Quiz tamamlandı: ${input.correctCount} doğru, ${input.wrongCount} yanlış, ${input.skippedCount} boş (${accuracy}% doğruluk).`;
 
   return {
     summary,
     observations,
-    recommendations,
+    recommendations: [systemRecommendation],
     generatedBy: 'fallback',
   };
 }

@@ -7,17 +7,27 @@ import {
   TeacherInsightInput,
   TeacherReport,
 } from '../types';
+import {
+  buildBehaviorObservation,
+  buildSystemRecommendation,
+} from '../utils/teacherReportLanguage';
+import { sanitizeAiOutput } from '../utils/sanitizeAiOutput';
+import * as persistenceService from './persistence.service';
 
 export async function buildTeacherReport(
   studentId: string
 ): Promise<TeacherReport> {
   const live = getStudentLastResult(studentId);
 
-  if (live) {
-    return buildLiveTeacherReport(live);
-  }
+  const report = live
+    ? await buildLiveTeacherReport(live)
+    : await buildDefaultTeacherReport(studentId);
 
-  return buildDefaultTeacherReport(studentId);
+  const persisted = await persistenceService.saveTeacherReport(report, {
+    quizId: live?.quizId ?? demoQuiz.quizId,
+  });
+
+  return { ...report, persisted };
 }
 
 async function buildLiveTeacherReport(
@@ -25,6 +35,10 @@ async function buildLiveTeacherReport(
 ): Promise<TeacherReport> {
   const insightInput = buildInsightInputFromResult(result);
   const insight = await puqAiService.generateTeacherInsightReport(insightInput);
+
+  const behaviorObservation = pickSafeObservation(result, insight);
+  const systemRecommendation = pickSafeRecommendation(result, insight);
+  const aiTeacherNote = pickSafeAiNote(result, insight);
 
   return {
     ...mapAiMetadata(insight),
@@ -40,13 +54,9 @@ async function buildLiveTeacherReport(
     skippedCount: result.skippedCount,
     averageTimeSeconds: result.averageTimeSeconds,
     mostDifficultTopic: result.mostDifficultTopic,
-    behaviorObservation:
-      insight.observations[0] ??
-      'Öğrenci quiz sürecinde farklı tempolarda ilerlemiş olabilir.',
-    systemRecommendation:
-      insight.recommendations[0] ??
-      'Bir sonraki derste kısa tekrar ve örnek çözüm önerilir.',
-    aiTeacherNote: insight.text,
+    behaviorObservation,
+    systemRecommendation,
+    aiTeacherNote,
     reportSource: 'live',
   };
 }
@@ -61,7 +71,7 @@ async function buildDefaultTeacherReport(
     ? Math.round((profile.score / 100) * TOTAL_QUESTIONS)
     : 0;
   const wrongCount = profile
-    ? Math.max(0, TOTAL_QUESTIONS - correctCount)
+    ? Math.max(0, TOTAL_QUESTIONS - correctCount - 0)
     : 0;
 
   const insightInput: TeacherInsightInput = {
@@ -76,10 +86,18 @@ async function buildDefaultTeacherReport(
 
   const insight = await puqAiService.generateTeacherInsightReport(insightInput);
 
+  const behaviorObservation = buildBehaviorObservation(insightInput);
+  const systemRecommendation = buildSystemRecommendation(insightInput);
+
   const demoNoteSuffix =
     insight.aiStatus === 'missing_config' || insight.fallbackUsed
       ? ' (Varsayılan demo raporu — canlı submit sonrası güncellenir.)'
       : '';
+
+  const aiNoteSafe = sanitizeAiOutput(
+    insight.text,
+    `${insightInput.quizTitle} için veri temelli öğretmen özeti hazırlandı.`
+  );
 
   return {
     ...mapAiMetadata(insight),
@@ -95,15 +113,54 @@ async function buildDefaultTeacherReport(
     skippedCount: 0,
     averageTimeSeconds: profile?.averageTimeSeconds ?? 0,
     mostDifficultTopic: profile?.mostDifficultTopic ?? 'Yazım kuralları',
-    behaviorObservation:
-      insight.observations[0] ??
-      'Henüz canlı quiz gönderimi yapılmadı; örnek pedagojik gözlem gösterilmektedir.',
-    systemRecommendation:
-      insight.recommendations[0] ??
-      'Öğrenci quiz tamamladığında güncel öneriler burada görünecektir.',
-    aiTeacherNote: `${insight.text}${demoNoteSuffix}`,
+    behaviorObservation,
+    systemRecommendation,
+    aiTeacherNote: `${aiNoteSafe.text}${demoNoteSuffix}`,
     reportSource: 'default',
   };
+}
+
+function pickSafeObservation(
+  result: StoredQuizResult,
+  insight: { observations: string[] }
+): string {
+  const dataDriven = buildBehaviorObservation(result);
+
+  const aiCandidate = insight.observations[0];
+  if (!aiCandidate) {
+    return dataDriven;
+  }
+
+  const sanitized = sanitizeAiOutput(aiCandidate, dataDriven);
+  return sanitized.wasSanitized ? dataDriven : sanitized.text;
+}
+
+function pickSafeRecommendation(
+  result: StoredQuizResult,
+  insight: { recommendations: string[] }
+): string {
+  const dataDriven = buildSystemRecommendation(result);
+
+  const aiCandidate = insight.recommendations[0];
+  if (!aiCandidate) {
+    return dataDriven;
+  }
+
+  const sanitized = sanitizeAiOutput(aiCandidate, dataDriven);
+  return sanitized.wasSanitized ? dataDriven : sanitized.text;
+}
+
+function pickSafeAiNote(
+  result: StoredQuizResult,
+  insight: { text: string; summary: string }
+): string {
+  const fallbackNote = [
+    buildBehaviorObservation(result),
+    buildSystemRecommendation(result),
+  ].join(' ');
+
+  const sanitized = sanitizeAiOutput(insight.text || insight.summary, fallbackNote);
+  return sanitized.text;
 }
 
 export function buildInsightInputFromTestRequest(body: {
@@ -162,12 +219,4 @@ function mapAiMetadata(insight: {
     aiStatus: insight.aiStatus,
     generatedAt: insight.generatedAt,
   };
-}
-
-export function formatAiTeacherNoteFromInsight(insight: {
-  summary: string;
-  observations: string[];
-  recommendations: string[];
-}): string {
-  return formatInsightAsText(insight);
 }

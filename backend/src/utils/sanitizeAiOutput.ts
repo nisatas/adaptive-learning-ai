@@ -11,6 +11,17 @@ const FORBIDDEN_TERMS = [
   'dikkat bozukluğu',
   'öğrenme bozukluğu',
   'engelli',
+  'isteksiz',
+  'dikkatsiz',
+  'motivasyonsuz',
+  'problemli',
+  'zayıf öğrenci',
+  'zayıf',
+  'başarısız öğrenci',
+  'başarısız',
+  'tembel',
+  'motivasyonu düşük',
+  'ilgisiz',
 ];
 
 export function normalizeForSafetyCheck(text: string): string {

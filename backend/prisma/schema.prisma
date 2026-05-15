@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model quizanswerrecord {
+  id                String            @id
+  submissionId      String
+  questionId        String
+  selectedOptionId  String?
+  isCorrect         Boolean
+  skipped           Boolean
+  timeSpentSeconds  Int?
+  topic             String?
+  createdAt         DateTime          @default(now())
+  studentsubmission studentsubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade, map: "QuizAnswerRecord_submissionId_fkey")
+
+  @@index([submissionId], map: "QuizAnswerRecord_submissionId_idx")
+}
+
+model studentsubmission {
+  id                  String             @id
+  studentId           String
+  studentName         String?
+  quizId              String
+  lesson              String
+  gradeLevel          Int
+  topic               String
+  totalQuestions      Int
+  score               Int
+  correctCount        Int
+  wrongCount          Int
+  skippedCount        Int
+  averageTimeSeconds  Int
+  mostDifficultTopic  String?
+  studentMessage      String?
+  uiSettingsJson      Json
+  behaviorSignalsJson Json
+  createdAt           DateTime           @default(now())
+  quizanswerrecord    quizanswerrecord[]
+
+  @@index([studentId, createdAt], map: "StudentSubmission_studentId_createdAt_idx")
+}
+
+model teacherreportrecord {
+  id                   String   @id
+  submissionId         String?
+  studentId            String
+  studentName          String?
+  quizId               String?
+  lesson               String
+  gradeLevel           Int
+  topic                String
+  score                Int
+  totalQuestions       Int
+  correctCount         Int
+  wrongCount           Int
+  skippedCount         Int
+  averageTimeSeconds   Int
+  mostDifficultTopic   String?
+  behaviorObservation  String   @db.Text
+  systemRecommendation String   @db.Text
+  aiTeacherNote        String   @db.Text
+  aiProvider           String
+  aiUsed               Boolean
+  fallbackUsed         Boolean
+  aiStatus             String
+  reportSource         String
+  generatedAt          DateTime
+  createdAt            DateTime @default(now())
+
+  @@index([studentId, createdAt], map: "TeacherReportRecord_studentId_createdAt_idx")
+}

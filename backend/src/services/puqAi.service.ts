@@ -9,6 +9,7 @@ import {
   TeacherInsightReport,
 } from '../types';
 import { buildFallbackTeacherReport } from '../utils/fallbackTeacherReport';
+import { TEACHER_REPORT_SYSTEM_PROMPT } from '../utils/teacherReportLanguage';
 import {
   buildPuqAiHeaders,
   buildPuqAiUrl,
@@ -359,11 +360,9 @@ export class PuqAiService {
     const { chatEndpoint, model } = env.puqAi;
     const url = buildPuqAiUrl(chatEndpoint);
 
-    const systemPrompt =
-      'Sen eğitim teknolojileri alanında etik rapor yazan bir asistansın. Tanı koyma, öğrenciyi etiketleme, DEHB/disleksi/bozukluk gibi ifadeler kullanma. Sadece pedagojik gözlem ve destek önerisi yaz. Yanıtı mümkünse JSON formatında ver: {"summary":"...","observations":["..."],"recommendations":["..."],"teacherNote":"..."}';
-
     const userPrompt = [
       'Aşağıdaki quiz davranış verisine göre öğretmen için kısa, anlaşılır ve aksiyona dönük Türkçe rapor üret.',
+      'Niyet veya duygu yorumu yapma; yalnızca sayısal quiz verisini kullan.',
       JSON.stringify({
         quizTitle: input.quizTitle,
         totalQuestions: input.totalQuestions,
@@ -383,7 +382,7 @@ export class PuqAiService {
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: TEACHER_REPORT_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.3,
