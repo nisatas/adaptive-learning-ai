@@ -125,6 +125,33 @@ export interface StoredQuizResult extends QuizResultResponse {
 
 // --- Teacher ---
 
+export type RecommendedAction = string;
+
+export interface SupportDistributionItem {
+  label: string;
+  percentage: number;
+  count: number;
+}
+
+export type PuqAiAgentFeedItemType = 'insight' | 'recommendation' | 'adaptation';
+
+export interface PuqAiAgentFeedItem {
+  id: string;
+  type: PuqAiAgentFeedItemType;
+  title: string;
+  message: string;
+  source: string;
+  /** ISO 8601 */
+  createdAt: string;
+}
+
+export interface TeacherDashboardFrontendHints {
+  recommendedActionsTarget: string;
+  supportDistributionTarget: string;
+  agentFeedTarget: string;
+  settingsStatus: string;
+}
+
 export interface TeacherDashboardSummary {
   className: string;
   lesson: string;
@@ -136,7 +163,15 @@ export interface TeacherDashboardSummary {
   challengeReadyCount: number;
   mostDifficultTopic: string;
   lastUpdated: string;
+  teacherName: string;
+  teacherRole: string;
+  recommendedActions: RecommendedAction[];
+  supportDistribution: SupportDistributionItem[];
+  puqAiAgentFeed: PuqAiAgentFeedItem[];
+  frontendHints: TeacherDashboardFrontendHints;
 }
+
+export type TeacherStudentLastQuizStatus = 'Tamamlandı' | 'Bekleniyor';
 
 export interface TeacherStudentListItem {
   studentId: string;
@@ -146,6 +181,7 @@ export interface TeacherStudentListItem {
   mostDifficultTopic: string;
   supportSummary: string;
   personalizationStatus: string;
+  lastQuizStatus: TeacherStudentLastQuizStatus;
 }
 
 export interface TeacherStudentsListResponse {

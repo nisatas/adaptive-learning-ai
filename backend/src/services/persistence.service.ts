@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { getPrismaClient } from '../config/prisma';
 import {
   StoredQuizResult,
@@ -57,8 +58,9 @@ export async function saveQuizSubmission(
   }
 
   try {
-    await prisma.studentSubmission.create({
+    await prisma.studentsubmission.create({
       data: {
+        id: randomUUID(),
         studentId: result.studentId,
         studentName: studentName ?? null,
         quizId: result.quizId,
@@ -75,8 +77,9 @@ export async function saveQuizSubmission(
         studentMessage: result.studentMessage,
         uiSettingsJson: result.uiSettings as unknown as object,
         behaviorSignalsJson: result.behaviorSignalsInternal as unknown as object,
-        answers: {
+        quizanswerrecord: {
           create: answers.map((answer) => ({
+            id: randomUUID(),
             questionId: answer.questionId,
             selectedOptionId: answer.selectedOptionId ?? null,
             isCorrect: answer.isCorrect,
@@ -110,7 +113,7 @@ export async function saveTeacherReport(
     let linkedSubmissionId = submissionId ?? null;
 
     if (!linkedSubmissionId) {
-      const latest = await prisma.studentSubmission.findFirst({
+      const latest = await prisma.studentsubmission.findFirst({
         where: { studentId: report.studentId },
         orderBy: { createdAt: 'desc' },
         select: { id: true },
@@ -118,8 +121,9 @@ export async function saveTeacherReport(
       linkedSubmissionId = latest?.id ?? null;
     }
 
-    await prisma.teacherReportRecord.create({
+    await prisma.teacherreportrecord.create({
       data: {
+        id: randomUUID(),
         submissionId: linkedSubmissionId,
         studentId: report.studentId,
         studentName: report.studentName,
@@ -162,7 +166,7 @@ export async function getLatestSubmissionByStudentId(
   }
 
   try {
-    const row = await prisma.studentSubmission.findFirst({
+    const row = await prisma.studentsubmission.findFirst({
       where: { studentId },
       orderBy: { createdAt: 'desc' },
     });
@@ -177,6 +181,30 @@ export async function getLatestSubmissionByStudentId(
   }
 }
 
+/** Latest stored notes for dashboard feed (no Puq.ai call). */
+export async function getLatestTeacherReportsForDashboardFeed(
+  limit: number
+): Promise<Array<{ aiTeacherNote: string; generatedAt: Date }>> {
+  const prisma = getPrismaClient();
+  if (!prisma || limit < 1) {
+    return [];
+  }
+
+  try {
+    const rows = await prisma.teacherreportrecord.findMany({
+      take: Math.min(limit, 5),
+      orderBy: { createdAt: 'desc' },
+      select: {
+        aiTeacherNote: true,
+        generatedAt: true,
+      },
+    });
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
 export async function getLatestTeacherReportByStudentId(
   studentId: string
 ): Promise<TeacherReport | null> {
@@ -186,7 +214,7 @@ export async function getLatestTeacherReportByStudentId(
   }
 
   try {
-    const row = await prisma.teacherReportRecord.findFirst({
+    const row = await prisma.teacherreportrecord.findFirst({
       where: { studentId },
       orderBy: { createdAt: 'desc' },
     });

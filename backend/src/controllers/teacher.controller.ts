@@ -6,8 +6,16 @@ import {
 import { buildTeacherReport } from '../services/teacherReport.service';
 import { isValidStudent } from '../services/quiz.service';
 
-export function getDashboard(_req: Request, res: Response): void {
-  res.json(getTeacherDashboard());
+export async function getDashboard(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    res.json(await getTeacherDashboard());
+  } catch (error) {
+    next(error);
+  }
 }
 
 export function getStudents(_req: Request, res: Response): void {

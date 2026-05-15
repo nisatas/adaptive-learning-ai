@@ -230,7 +230,8 @@ export const demoStudent: Student = {
 
 /** Öğretmen tablosu için mock öğrenci profilleri (submit öncesi varsayılan) */
 export const mockStudentProfiles: Array<
-  Student & Omit<TeacherStudentListItem, 'studentId' | 'studentName'>
+  Student &
+    Omit<TeacherStudentListItem, 'studentId' | 'studentName' | 'lastQuizStatus'>
 > = [
   {
     studentId: 'stu-1',
