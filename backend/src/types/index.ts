@@ -155,7 +155,21 @@ export interface TeacherStudentsListResponse {
   students: TeacherStudentListItem[];
 }
 
-export interface TeacherReport {
+export type AiStatus =
+  | 'configured'
+  | 'missing_config'
+  | 'request_failed'
+  | 'fallback';
+
+export interface AiMetadata {
+  aiProvider: 'Puq.ai';
+  aiUsed: boolean;
+  fallbackUsed: boolean;
+  aiStatus: AiStatus;
+  generatedAt: string;
+}
+
+export interface TeacherReport extends AiMetadata {
   studentId: string;
   studentName: string;
   lesson: string;
@@ -188,11 +202,104 @@ export interface TeacherInsightInput {
   mostDifficultTopic?: string;
 }
 
+/** Internal structured insight before metadata wrapping */
 export interface TeacherInsightReport {
   summary: string;
   observations: string[];
   recommendations: string[];
+  teacherNote?: string;
   generatedBy: 'puq-ai' | 'fallback';
+}
+
+export type PuqAiErrorType =
+  | 'AUTH_ERROR'
+  | 'CREDIT_ERROR'
+  | 'ENDPOINT_NOT_FOUND'
+  | 'NETWORK_ERROR'
+  | 'SSL_ERROR'
+  | 'UNKNOWN_ERROR';
+
+export interface PuqAiErrorMetadata {
+  statusCode?: number | null;
+  errorType?: PuqAiErrorType;
+  safeMessage?: string;
+}
+
+export interface AiModelsResponse extends PuqAiErrorMetadata {
+  provider: 'Puq.ai';
+  configured: boolean;
+  success: boolean;
+  models: string[];
+  message: string;
+}
+
+export interface PuqAiInsightResult extends PuqAiErrorMetadata {
+  text: string;
+  summary: string;
+  observations: string[];
+  recommendations: string[];
+  aiProvider: 'Puq.ai';
+  aiUsed: boolean;
+  fallbackUsed: boolean;
+  aiStatus: AiStatus;
+  generatedAt: string;
+}
+
+export interface AiTestTeacherReportRequest {
+  studentName?: string;
+  lesson: string;
+  gradeLevel: number;
+  topic: string;
+  score: number;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  averageTimeSeconds: number;
+  mostDifficultTopic: string;
+  behaviorSignals?: BehaviorSignalsPublic;
+}
+
+export interface AiTestTeacherReportResponse extends AiMetadata, PuqAiErrorMetadata {
+  teacherInsight: string;
+}
+
+export interface ChatEndpointProbeResult {
+  endpoint: string;
+  success: boolean;
+  statusCode: number | null;
+  errorType?: PuqAiErrorType;
+  safeMessage?: string;
+  message?: string;
+  sampleText?: string;
+}
+
+export interface ChatEndpointProbeResponse {
+  provider: 'Puq.ai';
+  configured: boolean;
+  tested: ChatEndpointProbeResult[];
+  message: string;
+}
+
+export interface AiDiagnosticsResponse {
+  node: {
+    version: string;
+    openssl: string;
+    platform: string;
+    arch: string;
+  };
+  tls: {
+    nodeTlsRejectUnauthorized: 'set' | 'not_set';
+    extraCaCerts: 'set' | 'not_set';
+  };
+  puqAi: {
+    baseUrlConfigured: boolean;
+    chatEndpointConfigured: boolean;
+    modelConfigured: boolean;
+    apiKeyConfigured: boolean;
+    apiKeyPreview: 'hidden';
+  };
+  recommendation: string;
 }
 
 export interface HealthResponse {
@@ -203,5 +310,6 @@ export interface HealthResponse {
 export interface AiStatusResponse {
   provider: string;
   configured: boolean;
+  requiredVariables: Record<string, boolean>;
   message: string;
 }

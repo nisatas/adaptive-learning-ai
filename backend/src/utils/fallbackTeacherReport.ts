@@ -62,8 +62,8 @@ export function buildFallbackTeacherReport(
 
   const summary =
     input.quizTitle
-      ? `"${input.quizTitle}" quizi sonucunda öğrenci %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor tanı veya etiket içermez.`
-      : `Öğrenci quiz sonucunda %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor tanı veya etiket içermez.`;
+      ? `"${input.quizTitle}" quizi sonucunda öğrenci %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor yargılayıcı etiket içermez.`
+      : `Öğrenci quiz sonucunda %${accuracy} doğruluk oranıyla tamamladı. Pedagojik gözlemler aşağıdadır; bu rapor yargılayıcı etiket içermez.`;
 
   return {
     summary,

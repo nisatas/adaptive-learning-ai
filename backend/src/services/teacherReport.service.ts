@@ -1,7 +1,8 @@
 import { demoQuiz, mockStudentProfiles, TOTAL_QUESTIONS } from '../data/mockData';
-import { puqAiService } from './puqAi.service';
+import { formatInsightAsText, puqAiService } from './puqAi.service';
 import { getStudentLastResult, getStudentName } from './quiz.service';
 import {
+  AiMetadata,
   StoredQuizResult,
   TeacherInsightInput,
   TeacherReport,
@@ -22,29 +23,11 @@ export async function buildTeacherReport(
 async function buildLiveTeacherReport(
   result: StoredQuizResult
 ): Promise<TeacherReport> {
-  const insightInput: TeacherInsightInput = {
-    quizTitle: `${result.lesson} - ${result.topic}`,
-    totalQuestions: result.totalQuestions,
-    correctCount: result.correctCount,
-    wrongCount: result.wrongCount,
-    skippedCount: result.skippedCount,
-    averageAnswerTimeMs: result.averageTimeSeconds * 1000,
-    slowQuestionIds: result.behaviorSignalsInternal.slowQuestionIds,
-    hesitationCount: result.behaviorSignalsInternal.hesitationCount,
-    mostDifficultTopic: result.mostDifficultTopic,
-  };
-
+  const insightInput = buildInsightInputFromResult(result);
   const insight = await puqAiService.generateTeacherInsightReport(insightInput);
 
-  const behaviorObservation =
-    insight.observations[0] ??
-    'Öğrenci quiz sürecinde farklı tempolarda ilerlemiş olabilir.';
-
-  const systemRecommendation =
-    insight.recommendations[0] ??
-    'Bir sonraki derste kısa tekrar ve örnek çözüm önerilir.';
-
   return {
+    ...mapAiMetadata(insight),
     studentId: result.studentId,
     studentName: getStudentName(result.studentId),
     lesson: result.lesson,
@@ -57,9 +40,13 @@ async function buildLiveTeacherReport(
     skippedCount: result.skippedCount,
     averageTimeSeconds: result.averageTimeSeconds,
     mostDifficultTopic: result.mostDifficultTopic,
-    behaviorObservation,
-    systemRecommendation,
-    aiTeacherNote: formatAiTeacherNote(insight),
+    behaviorObservation:
+      insight.observations[0] ??
+      'Öğrenci quiz sürecinde farklı tempolarda ilerlemiş olabilir.',
+    systemRecommendation:
+      insight.recommendations[0] ??
+      'Bir sonraki derste kısa tekrar ve örnek çözüm önerilir.',
+    aiTeacherNote: insight.text,
     reportSource: 'live',
   };
 }
@@ -89,7 +76,13 @@ async function buildDefaultTeacherReport(
 
   const insight = await puqAiService.generateTeacherInsightReport(insightInput);
 
+  const demoNoteSuffix =
+    insight.aiStatus === 'missing_config' || insight.fallbackUsed
+      ? ' (Varsayılan demo raporu — canlı submit sonrası güncellenir.)'
+      : '';
+
   return {
+    ...mapAiMetadata(insight),
     studentId,
     studentName,
     lesson: demoQuiz.lesson,
@@ -108,26 +101,73 @@ async function buildDefaultTeacherReport(
     systemRecommendation:
       insight.recommendations[0] ??
       'Öğrenci quiz tamamladığında güncel öneriler burada görünecektir.',
-    aiTeacherNote:
-      `${formatAiTeacherNote(insight)} (Varsayılan demo raporu — canlı submit sonrası güncellenir.)`,
+    aiTeacherNote: `${insight.text}${demoNoteSuffix}`,
     reportSource: 'default',
   };
 }
 
-function formatAiTeacherNote(insight: {
+export function buildInsightInputFromTestRequest(body: {
+  lesson: string;
+  gradeLevel: number;
+  topic: string;
+  score: number;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  averageTimeSeconds: number;
+  mostDifficultTopic: string;
+  studentName?: string;
+  behaviorSignals?: {
+    longHesitations?: number;
+  };
+}): TeacherInsightInput {
+  return {
+    quizTitle: `${body.lesson} - ${body.topic}`,
+    totalQuestions: body.totalQuestions,
+    correctCount: body.correctCount,
+    wrongCount: body.wrongCount,
+    skippedCount: body.skippedCount,
+    averageAnswerTimeMs: body.averageTimeSeconds * 1000,
+    mostDifficultTopic: body.mostDifficultTopic,
+    hesitationCount: body.behaviorSignals?.longHesitations,
+  };
+}
+
+function buildInsightInputFromResult(result: StoredQuizResult): TeacherInsightInput {
+  return {
+    quizTitle: `${result.lesson} - ${result.topic}`,
+    totalQuestions: result.totalQuestions,
+    correctCount: result.correctCount,
+    wrongCount: result.wrongCount,
+    skippedCount: result.skippedCount,
+    averageAnswerTimeMs: result.averageTimeSeconds * 1000,
+    slowQuestionIds: result.behaviorSignalsInternal.slowQuestionIds,
+    hesitationCount: result.behaviorSignalsInternal.hesitationCount,
+    mostDifficultTopic: result.mostDifficultTopic,
+  };
+}
+
+function mapAiMetadata(insight: {
+  aiProvider: 'Puq.ai';
+  aiUsed: boolean;
+  fallbackUsed: boolean;
+  aiStatus: AiMetadata['aiStatus'];
+  generatedAt: string;
+}): AiMetadata {
+  return {
+    aiProvider: insight.aiProvider,
+    aiUsed: insight.aiUsed,
+    fallbackUsed: insight.fallbackUsed,
+    aiStatus: insight.aiStatus,
+    generatedAt: insight.generatedAt,
+  };
+}
+
+export function formatAiTeacherNoteFromInsight(insight: {
   summary: string;
   observations: string[];
   recommendations: string[];
 }): string {
-  const parts = [insight.summary];
-
-  if (insight.observations.length > 1) {
-    parts.push(insight.observations.slice(1).join(' '));
-  }
-
-  if (insight.recommendations.length > 1) {
-    parts.push(insight.recommendations.slice(1).join(' '));
-  }
-
-  return parts.filter(Boolean).join(' ');
+  return formatInsightAsText(insight);
 }
