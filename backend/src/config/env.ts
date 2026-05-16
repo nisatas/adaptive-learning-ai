@@ -22,8 +22,13 @@ export const env = {
     baseUrl: process.env.PUQ_AI_BASE_URL ?? '',
     model: process.env.PUQ_AI_MODEL ?? '',
     chatEndpoint: process.env.PUQ_AI_CHAT_ENDPOINT ?? '',
+    meetWorkflowUrl: process.env.PUQ_MEET_WORKFLOW_URL ?? '',
   },
 };
+
+export function isMeetWorkflowConfigured(): boolean {
+  return Boolean(env.puqAi.meetWorkflowUrl.trim());
+}
 
 export function isPuqAiConfigured(): boolean {
   const { apiKey, baseUrl, model, chatEndpoint } = env.puqAi;

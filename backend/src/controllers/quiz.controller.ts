@@ -10,14 +10,14 @@ export function getDemoQuiz(_req: Request, res: Response): void {
   res.json(getDemoQuizPublic());
 }
 
-export function postDemoQuizSubmit(
+export async function postDemoQuizSubmit(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const body = req.body as QuizSubmissionRequest;
-    const result = submitDemoQuiz(body);
+    const result = await submitDemoQuiz(body);
     res.json(result);
   } catch (error) {
     next(error);

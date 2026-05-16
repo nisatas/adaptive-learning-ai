@@ -1,0 +1,9 @@
+import { MeetPlanningPromptInput, MeetWorkflowResponse, QuizBehaviorAnalysisResponse, QuizBehaviorPromptInput, StudentAnalysisPromptInput, StudentAnalysisResponse, StudentFeedbackPromptInput, StudentFeedbackResponse, SupportPlanPromptInput, SupportPlanWorkflowResponse, TeacherDashboardAnalysisResponse, TeacherDashboardPromptInput, WeeklyReportPromptInput, WeeklyReportWorkflowResponse } from './contracts/promptContracts';
+export declare function fallbackStudentFeedbackResponse(input: StudentFeedbackPromptInput): StudentFeedbackResponse;
+export declare function fallbackStudentAnalysisResponse(input: StudentAnalysisPromptInput): StudentAnalysisResponse;
+export declare function fallbackQuizBehaviorResponse(input: QuizBehaviorPromptInput): QuizBehaviorAnalysisResponse;
+export declare function fallbackTeacherDashboardResponse(input: TeacherDashboardPromptInput): TeacherDashboardAnalysisResponse;
+export declare function fallbackMeetWorkflowResponse(input: MeetPlanningPromptInput): MeetWorkflowResponse;
+export declare function fallbackSupportPlanWorkflowResponse(input: SupportPlanPromptInput): SupportPlanWorkflowResponse;
+export declare function fallbackWeeklyReportWorkflowResponse(input: WeeklyReportPromptInput): WeeklyReportWorkflowResponse;
+//# sourceMappingURL=fallbackResponses.d.ts.map

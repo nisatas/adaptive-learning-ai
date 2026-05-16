@@ -1,9 +1,16 @@
 import { CLASS_META, demoQuiz, mockStudentProfiles } from '../data/mockData';
 import { getLastSubmitAt, getLastQuizResult } from '../data/inMemoryStore';
 import {
+  TeacherDashboardAnalysisResponse,
+  TeacherDashboardPromptInput,
+  TeacherDashboardStudentSnapshot,
+  TeacherDashboardWorkflowSuggestion,
+} from '../prompts/contracts/promptContracts';
+import {
   buildPersonalizationStatus,
   buildSupportSummary,
 } from './adaptation.service';
+import { aiPromptService } from './aiPrompt.service';
 import {
   TeacherDashboardSummary,
   TeacherDashboardFrontendHints,
@@ -333,6 +340,224 @@ function ensurePuqAiAgentFeed(feed: PuqAiAgentFeedItem[]): PuqAiAgentFeedItem[] 
   return sanitizePuqAiAgentFeedMessages(merged);
 }
 
+function buildTeacherDashboardStudentSnapshots(): TeacherDashboardStudentSnapshot[] {
+  return mockStudentProfiles.map((profile) => {
+    const live = getLastQuizResult(profile.studentId);
+    const score = live ? live.score : profile.score;
+    const averageTimeSeconds = live
+      ? live.averageTimeSeconds
+      : profile.averageTimeSeconds;
+    const mostDifficultTopic = live
+      ? live.mostDifficultTopic
+      : profile.mostDifficultTopic;
+
+    return {
+      studentId: profile.studentId,
+      studentName: profile.name,
+      score: Math.min(100, Math.max(0, Math.round(safeNumber(score, 0)))),
+      averageTimeSeconds: Math.max(
+        0,
+        Math.round(safeNumber(averageTimeSeconds, 0))
+      ),
+      mostDifficultTopic: safeStr(
+        mostDifficultTopic,
+        FALLBACK_MOST_DIFFICULT_TOPIC
+      ),
+      supportSummary: live
+        ? buildSupportSummary(live.score)
+        : safeStr(profile.supportSummary, buildSupportSummary(score)),
+      lastQuizStatus: live ? 'Tamamlandı' : 'Bekleniyor',
+    };
+  });
+}
+
+function buildTeacherDashboardPromptInput(
+  dashboard: TeacherDashboardSummary,
+  students: TeacherDashboardStudentSnapshot[]
+): TeacherDashboardPromptInput {
+  return {
+    teacherName: dashboard.teacherName,
+    className: dashboard.className,
+    lesson: dashboard.lesson,
+    topic: dashboard.topic,
+    classAverage: dashboard.classAverage,
+    averageResponseTime: dashboard.averageResponseTime,
+    supportSuggestedCount: dashboard.supportSuggestedCount,
+    challengeReadyCount: dashboard.challengeReadyCount,
+    mostDifficultTopic: dashboard.mostDifficultTopic,
+    students,
+  };
+}
+
+function mergeAiTeacherActions(
+  aiActions: string[],
+  fallback: RecommendedAction[]
+): RecommendedAction[] {
+  const seen = new Set<string>();
+  const merged: RecommendedAction[] = [];
+
+  for (const raw of aiActions) {
+    const candidate = safeStr(raw, '');
+    if (!candidate) {
+      continue;
+    }
+    const { text } = sanitizeAiOutput(candidate, '');
+    if (text && !seen.has(text)) {
+      seen.add(text);
+      merged.push(text);
+    }
+  }
+
+  for (const item of fallback) {
+    const candidate = safeStr(item, '');
+    if (candidate && !seen.has(candidate)) {
+      seen.add(candidate);
+      merged.push(candidate);
+    }
+  }
+
+  return merged;
+}
+
+function formatWorkflowSuggestionLine(
+  suggestion?: TeacherDashboardWorkflowSuggestion
+): string {
+  if (!suggestion) {
+    return '';
+  }
+  const title = safeStr(suggestion.title, '');
+  const reason = safeStr(suggestion.reason, '');
+  if (title && reason) {
+    return `${title}: ${reason}`;
+  }
+  return title || reason;
+}
+
+function formatStudentsNeedingSupportLine(
+  analysis: TeacherDashboardAnalysisResponse
+): string {
+  if (analysis.studentsNeedingSupport.length === 0) {
+    return '';
+  }
+
+  const lines = analysis.studentsNeedingSupport
+    .slice(0, 2)
+    .map(
+      (student) =>
+        `${safeStr(student.studentName, 'Öğrenci')} için ${safeStr(
+          student.suggestedAction,
+          'kısa tekrar önerilir'
+        )}`
+    );
+
+  return `Destek önerisi: ${lines.join('; ')}.`;
+}
+
+function enrichPuqAiAgentFeedFromAnalysis(
+  feed: PuqAiAgentFeedItem[],
+  analysis: TeacherDashboardAnalysisResponse,
+  lessonLabel: string
+): PuqAiAgentFeedItem[] {
+  const copy = feed.map((item) => ({ ...item }));
+
+  const classSummary = safeStr(analysis.classSummary, '');
+  if (classSummary && copy[0]) {
+    copy[0] = {
+      ...copy[0],
+      title: 'Sınıf özeti',
+      message: sanitizeAiOutput(classSummary, copy[0].message).text,
+    };
+  }
+
+  const primaryAction =
+    safeStr(analysis.recommendedTeacherActions[0], '') ||
+    formatWorkflowSuggestionLine(analysis.workflowSuggestions[0]) ||
+    `Bir sonraki ${lessonLabel} oturumunda kısa tekrar ve mini alıştırma planlanabilir.`;
+
+  if (copy[1]) {
+    copy[1] = {
+      ...copy[1],
+      title: 'Önerilen öğretim aksiyonu',
+      message: sanitizeAiOutput(primaryAction, copy[1].message).text,
+    };
+  }
+
+  const supportLine =
+    formatStudentsNeedingSupportLine(analysis) ||
+    (analysis.challengeReadyStudents[0]
+      ? `${safeStr(
+          analysis.challengeReadyStudents[0].studentName,
+          'Öğrenci'
+        )} için ${safeStr(
+          analysis.challengeReadyStudents[0].suggestedAction,
+          'ek pratik önerilir'
+        )}.`
+      : '');
+
+  const workflowLine = formatWorkflowSuggestionLine(
+    analysis.workflowSuggestions[1] ?? analysis.workflowSuggestions[0]
+  );
+
+  const adaptationMessage = [supportLine, workflowLine]
+    .filter((line) => line.length > 0)
+    .join(' ');
+
+  if (adaptationMessage && copy[2]) {
+    copy[2] = {
+      ...copy[2],
+      title: 'Destek ve workflow özeti',
+      message: sanitizeAiOutput(adaptationMessage, copy[2].message).text,
+    };
+  }
+
+  return copy;
+}
+
+function applyTeacherDashboardAnalysis(
+  base: TeacherDashboardSummary,
+  analysis: TeacherDashboardAnalysisResponse
+): TeacherDashboardSummary {
+  const aiTopic = safeStr(analysis.mostDifficultTopic, '');
+  const mostDifficultTopic =
+    aiTopic && aiTopic !== FALLBACK_MOST_DIFFICULT_TOPIC
+      ? aiTopic
+      : base.mostDifficultTopic;
+
+  const recommendedActions = ensureRecommendedActions(
+    mergeAiTeacherActions(analysis.recommendedTeacherActions, base.recommendedActions)
+  );
+
+  const lessonLabel = safeStr(base.lesson, 'ders');
+  const puqAiAgentFeed = ensurePuqAiAgentFeed(
+    enrichPuqAiAgentFeedFromAnalysis(
+      base.puqAiAgentFeed,
+      analysis,
+      lessonLabel
+    )
+  );
+
+  return {
+    ...base,
+    mostDifficultTopic: safeStr(mostDifficultTopic, base.mostDifficultTopic),
+    recommendedActions,
+    puqAiAgentFeed,
+  };
+}
+
+async function enrichTeacherDashboardWithAi(
+  base: TeacherDashboardSummary,
+  students: TeacherDashboardStudentSnapshot[]
+): Promise<TeacherDashboardSummary> {
+  try {
+    const analysis = await aiPromptService.generateTeacherDashboardAnalysis(
+      buildTeacherDashboardPromptInput(base, students)
+    );
+    return applyTeacherDashboardAnalysis(base, analysis);
+  } catch {
+    return base;
+  }
+}
+
 export async function getTeacherDashboard(): Promise<TeacherDashboardSummary> {
   const profilesResolved = mockStudentProfiles.map((p) =>
     resolveInternalProfile(p.studentId, p.score, p.averageTimeSeconds)
@@ -355,13 +580,15 @@ export async function getTeacherDashboard(): Promise<TeacherDashboardSummary> {
 
   puqAiAgentFeed = ensurePuqAiAgentFeed(puqAiAgentFeed);
 
+  const studentSnapshots = buildTeacherDashboardStudentSnapshots();
+
   const studentCountEffective = Math.max(
     safeNumber(CLASS_META.studentCount, mockStudentProfiles.length),
     mockStudentProfiles.length,
     0
   );
 
-  const dashboard: TeacherDashboardSummary = {
+  const baseDashboard: TeacherDashboardSummary = {
     className: safeStr(CLASS_META.className, 'Sınıf'),
     lesson: safeStr(CLASS_META.lesson, 'Türkçe'),
     topic: safeStr(CLASS_META.topic, 'Ders özeti'),
@@ -388,7 +615,7 @@ export async function getTeacherDashboard(): Promise<TeacherDashboardSummary> {
     frontendHints: { ...DASHBOARD_FRONTEND_HINTS },
   };
 
-  return dashboard;
+  return enrichTeacherDashboardWithAi(baseDashboard, studentSnapshots);
 }
 
 function normalizeLastQuizStatus(value: unknown): TeacherStudentLastQuizStatus {

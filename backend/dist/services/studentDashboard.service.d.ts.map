@@ -1,0 +1,1 @@
+{"version":3,"file":"studentDashboard.service.d.ts","sourceRoot":"","sources":["../../src/services/studentDashboard.service.ts"],"names":[],"mappings":"AAGA,OAAO,EAAE,wBAAwB,EAAc,MAAM,UAAU,CAAC;AAWhE,qBAAa,4BAA6B,SAAQ,KAAK;IAG5C,UAAU,EAAE,MAAM;gBADzB,OAAO,EAAE,MAAM,EACR,UAAU,EAAE,MAAM;CAK5B;AAED,wBAAgB,mBAAmB,CACjC,SAAS,EAAE,MAAM,GAChB,wBAAwB,CAsB1B"}

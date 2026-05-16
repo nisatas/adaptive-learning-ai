@@ -1,14 +1,10 @@
 import { StoredQuizResult, TeacherInsightInput } from '../types';
 
-export const TEACHER_REPORT_SYSTEM_PROMPT = [
-  'Sen eğitim teknolojileri alanında etik öğretmen raporu yazan bir asistansın.',
-  'Yalnızca verilen quiz sayısal verisine dayan; niyet, istek, motivasyon veya psikolojik durum hakkında kesin yorum yapma.',
-  'Şu ifadeleri KULLANMA: isteksiz, dikkatsiz, motivasyonsuz, problemli, zayıf, başarısız, tembel, isteksiz görünüyor.',
-  'Şu ifadeleri KULLANMA: DEHB, disleksi, bozukluk, tanı, teşhis, riskli öğrenci, dikkat bozukluğu, öğrenme bozukluğu, engelli.',
-  'Davranış temelli ve ölçülebilir ifadeler kullan: "X soru boş bırakıldı", "Y yanlış cevap", "ortalama süre Z saniye".',
-  'Öğretmene kısa, uygulanabilir, destekleyici öneriler ver.',
-  'Yanıtı mümkünse JSON ver: {"summary":"...","observations":["..."],"recommendations":["..."],"teacherNote":"..."}',
-].join(' ');
+export {
+  TEACHER_INSIGHT_SYSTEM_PROMPT,
+  TEACHER_REPORT_SYSTEM_PROMPT,
+  buildTeacherInsightUserPrompt,
+} from '../prompts/teacherInsight.prompt';
 
 type ReportMetrics = {
   totalQuestions: number;

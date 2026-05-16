@@ -69,12 +69,22 @@ export interface BehaviorSignals {
   hesitationCount: number;
 }
 
-/** Student-facing — numeric only, no diagnostic labels */
+export type LearningSignalLevel = 'low' | 'medium' | 'high';
+
+/** Student-facing — numeric core + optional safe AI interpretation */
 export interface BehaviorSignalsPublic {
   fastWrongAnswers: number;
   longHesitations: number;
   skippedQuestions: number;
   totalTimeSeconds: number;
+  /** Pedagojik etkileşim özeti (AI veya fallback) */
+  interactionSummary?: string;
+  safeInterpretation?: string;
+  behaviorNotes?: string[];
+  attentionSignal?: LearningSignalLevel;
+  engagementSignal?: LearningSignalLevel;
+  confidenceSignal?: LearningSignalLevel;
+  analysisConfidence?: LearningSignalLevel;
 }
 
 export interface UiSettings {
@@ -349,4 +359,55 @@ export interface AiStatusResponse {
   configured: boolean;
   requiredVariables: Record<string, boolean>;
   message: string;
+}
+
+// --- Workflows ---
+
+export type WorkflowTriggerType = 'student_meet_request';
+
+export type WorkflowPriority = 'low' | 'medium' | 'high';
+
+export interface WorkflowTriggerRequest {
+  workflowType: WorkflowTriggerType | string;
+  teacherName?: string;
+  teacherEmail?: string;
+  studentName?: string;
+  studentEmail?: string;
+  lesson?: string;
+  topic?: string;
+  reason?: string;
+  suggestedDuration?: number;
+  priority?: WorkflowPriority | string;
+}
+
+export interface WorkflowTriggerResponse {
+  success: boolean;
+  message: string;
+  notificationCreated: boolean;
+}
+
+export type StudentNotificationType = 'meet';
+
+export type StudentNotificationStatus = 'unread' | 'read';
+
+export interface StudentNotification {
+  id: string;
+  type: StudentNotificationType;
+  title: string;
+  message: string;
+  lesson: string;
+  topic: string;
+  duration: number;
+  status: StudentNotificationStatus;
+}
+
+export interface StudentDashboardResponse {
+  studentId: string;
+  studentName: string;
+  lesson: string;
+  topic: string;
+  score: number;
+  studentMessage: string;
+  uiSettings: UiSettings;
+  notifications: StudentNotification[];
 }

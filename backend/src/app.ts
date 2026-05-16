@@ -5,6 +5,8 @@ import healthRoutes from './routes/health.routes';
 import aiRoutes from './routes/ai.routes';
 import quizRoutes from './routes/quiz.routes';
 import teacherRoutes from './routes/teacher.routes';
+import studentRoutes from './routes/student.routes';
+import workflowRoutes from './routes/workflow.routes';
 import dbRoutes from './routes/db.routes';
 
 export function createApp(): Application {
@@ -18,6 +20,8 @@ export function createApp(): Application {
   app.use('/api/ai', aiRoutes);
   app.use('/api/quizzes', quizRoutes);
   app.use('/api/teacher', teacherRoutes);
+  app.use('/api/student', studentRoutes);
+  app.use('/api/workflows', workflowRoutes);
 
   app.use(globalErrorHandler);
 

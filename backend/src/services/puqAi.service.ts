@@ -8,8 +8,11 @@ import {
   TeacherInsightInput,
   TeacherInsightReport,
 } from '../types';
+import {
+  buildTeacherInsightUserPrompt,
+  TEACHER_INSIGHT_SYSTEM_PROMPT,
+} from '../prompts/teacherInsight.prompt';
 import { buildFallbackTeacherReport } from '../utils/fallbackTeacherReport';
-import { TEACHER_REPORT_SYSTEM_PROMPT } from '../utils/teacherReportLanguage';
 import {
   buildPuqAiHeaders,
   buildPuqAiUrl,
@@ -224,6 +227,47 @@ export class PuqAiService {
     };
   }
 
+  /**
+   * Generic Puq.ai JSON/text completion for modular prompts.
+   * Returns null when config missing or request fails — callers use fallback responses.
+   */
+  async completePrompt(
+    systemPrompt: string,
+    userPrompt: string,
+    maxTokens = 300
+  ): Promise<string | null> {
+    if (!this.isConfigured()) {
+      return null;
+    }
+
+    try {
+      const { chatEndpoint, model } = env.puqAi;
+      const url = buildPuqAiUrl(chatEndpoint);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: buildPuqAiHeaders(),
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.3,
+          max_tokens: maxTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data: unknown = await response.json();
+      return extractPuqAiContent(data);
+    } catch {
+      return null;
+    }
+  }
+
   async generateTeacherInsightReport(
     input: TeacherInsightInput
   ): Promise<PuqAiInsightResult> {
@@ -357,13 +401,9 @@ export class PuqAiService {
     input: TeacherInsightInput,
     fallbackReport: TeacherInsightReport
   ): Promise<TeacherInsightReport> {
-    const { chatEndpoint, model } = env.puqAi;
-    const url = buildPuqAiUrl(chatEndpoint);
-
-    const userPrompt = [
-      'Aşağıdaki quiz davranış verisine göre öğretmen için kısa, anlaşılır ve aksiyona dönük Türkçe rapor üret.',
-      'Niyet veya duygu yorumu yapma; yalnızca sayısal quiz verisini kullan.',
-      JSON.stringify({
+    const content = await this.completePrompt(
+      TEACHER_INSIGHT_SYSTEM_PROMPT,
+      buildTeacherInsightUserPrompt({
         quizTitle: input.quizTitle,
         totalQuestions: input.totalQuestions,
         correctCount: input.correctCount,
@@ -374,28 +414,8 @@ export class PuqAiService {
         hesitationCount: input.hesitationCount,
         mostDifficultTopic: input.mostDifficultTopic,
       }),
-    ].join('\n');
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: buildPuqAiHeaders(),
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: TEACHER_REPORT_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 300,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new PuqAiHttpError(response.status);
-    }
-
-    const data: unknown = await response.json();
-    const content = extractPuqAiContent(data);
+      300
+    );
 
     if (!content) {
       throw new PuqAiHttpError(502);

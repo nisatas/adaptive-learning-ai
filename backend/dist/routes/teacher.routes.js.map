@@ -1,0 +1,1 @@
+{"version":3,"file":"teacher.routes.js","sourceRoot":"","sources":["../../src/routes/teacher.routes.ts"],"names":[],"mappings":";;AAAA,qCAAiC;AACjC,0EAI2C;AAE3C,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;AAExB,MAAM,CAAC,GAAG,CAAC,YAAY,EAAE,iCAAY,CAAC,CAAC;AACvC,MAAM,CAAC,GAAG,CAAC,WAAW,EAAE,gCAAW,CAAC,CAAC;AACrC,MAAM,CAAC,GAAG,CAAC,6BAA6B,EAAE,qCAAgB,CAAC,CAAC;AAE5D,kBAAe,MAAM,CAAC"}
