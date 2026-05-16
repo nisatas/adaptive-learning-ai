@@ -9,11 +9,22 @@
     </div>
 
     <nav class="sidebar-menu">
-      <a href="#dashboard" class="active">Dashboard</a>
-      <a href="#class-summary">Sınıf Özeti</a>
-      <a href="#analytics">Analizler</a>
-      <a class="disabled">Ayarlar</a>
-    </nav>
+  <button (click)="scrollToSection('dashboard')">
+    Dashboard
+  </button>
+
+  <button (click)="scrollToSection('class-summary')">
+    Sınıf Özeti
+  </button>
+
+  <button (click)="scrollToSection('analytics')">
+    Analizler
+  </button>
+
+  <button disabled>
+    Ayarlar
+  </button>
+</nav>
   </aside>
 
   <main class="dashboard-content">
@@ -57,6 +68,42 @@
         <p><strong>En çok zorlanılan konu:</strong> {{ dashboardData.mostDifficultTopic }}</p>
         <p><strong>İleri seviye soruya hazır öğrenci:</strong> {{ dashboardData.challengeReadyCount }}</p>
       </div>
+      <section class="meet-students-section" *ngIf="dashboardData.students?.length">
+
+  <div class="section-title">
+    <h2>Destek Görüşmesi Önerilen Öğrenciler</h2>
+    <p>Destek ihtiyacı belirlenen öğrenciler için birebir görüşme planlanabilir.</p>
+  </div>
+
+  <div class="meet-student-list">
+
+    <div
+      class="meet-student-card"
+      *ngFor="let student of dashboardData.students"
+    >
+      <div class="meet-student-info">
+        <h3>{{ student.name }}</h3>
+
+        <p><strong>Ders:</strong> {{ student.lesson }}</p>
+        <p><strong>Konu:</strong> {{ student.topic }}</p>
+        <p><strong>Sebep:</strong> {{ student.reason }}</p>
+        <p><strong>Önerilen Süre:</strong> {{ student.suggestedDuration }} dk</p>
+      </div>
+
+      <div class="meet-actions">
+        <span class="priority-badge">
+          {{ student.priority }}
+        </span>
+
+        <button (click)="planMeet(student)">
+          Meet Planla
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</section>
 
       <div class="distribution-card">
         <h2>{{ dashboardData.frontendHints.supportDistributionTarget }}</h2>

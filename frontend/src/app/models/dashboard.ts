@@ -41,4 +41,15 @@ export interface DashboardResponse {
   supportDistribution: SupportDistributionItem[];
   puqAiAgentFeed: PuqAiAgentFeedItem[];
   frontendHints: FrontendHints;
+  students: DashboardStudent[];
+}
+export interface DashboardStudent {
+  id: string;
+  name: string;
+  email: string;
+  lesson: string;
+  topic: string;
+  reason: string;
+  suggestedDuration: number;
+  priority: 'low' | 'medium' | 'high';
 }

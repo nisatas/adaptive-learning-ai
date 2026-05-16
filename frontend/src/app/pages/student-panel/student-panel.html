@@ -1,126 +1,133 @@
 <div class="student-panel-layout">
 
   <header class="student-header">
-    <div>
-      <h1>Adaptive Learning AI</h1>
+
+  <div class="header-left">
+    <h1>Adaptive Learning AI</h1>
+    <p>Öğrenci öğrenme paneli</p>
+  </div>
+
+  <div class="header-right">
+
+    <div class="notification-wrapper">
+
+      <button
+        class="notification-button"
+        (click)="toggleNotifications()"
+      >
+        🔔 Bildirimler
+      </button>
+
+      <div
+        class="notification-dropdown"
+        *ngIf="notificationsOpen"
+      >
+
+        <div
+          class="notification-card"
+          *ngFor="let notification of notifications"
+        >
+          <h4>{{ notification.title }}</h4>
+
+          <p>{{ notification.message }}</p>
+
+          <small>
+            {{ notification.lesson }} · {{ notification.topic }}
+          </small>
+        </div>
+
+      </div>
+
     </div>
 
-    <button (click)="goToTeacherDashboard()">
+    <button
+      class="teacher-button"
+      (click)="goToTeacherDashboard()"
+    >
       Öğretmen Paneline Geç
     </button>
-  </header>
+
+  </div>
+
+</header>
 
   <div class="student-body">
 
     <aside class="student-sidebar">
 
-  <button
-    [class.active]="activeSection === 'home'"
-    (click)="changeSection('home')"
-  >
-    Ana Sayfa
-  </button>
-
-  <button
-    [class.active]="activeSection === 'dashboard'"
-    (click)="changeSection('dashboard')"
-  >
-    Dashboard
-  </button>
-
-  <button
-    [class.active]="lessonsOpen"
-    (click)="toggleLessons()"
-  >
-    Dersler
-  </button>
-
-  <div class="submenu" *ngIf="lessonsOpen">
-
-    <button
-      class="submenu-title"
-      [class.active]="turkishOpen"
-      (click)="toggleTurkish()"
-    >
-      Türkçe
-    </button>
-
-    <div class="submenu nested" *ngIf="turkishOpen">
-
-      <button disabled>
-        Sözcükte Anlam
+      <button
+        [class.active]="activeSection === 'home'"
+        (click)="changeSection('home')"
+      >
+        Ana Sayfa
       </button>
 
-      <button disabled>
-        Cümlede Anlam
+      <button
+        [class.active]="activeSection === 'dashboard'"
+        (click)="changeSection('dashboard')"
+      >
+        Dashboard
       </button>
 
-      <button class="active-lesson" (click)="goToLesson()">
-        Paragrafta Anlam
+      <button
+        [class.active]="lessonsOpen"
+        (click)="toggleLessons()"
+      >
+        Dersler
       </button>
 
-      <button disabled>
-        Yazım Kuralları
-      </button>
+      <div class="submenu" *ngIf="lessonsOpen">
 
-    </div>
+        <button
+          class="submenu-title"
+          [class.active]="turkishOpen"
+          (click)="toggleTurkish()"
+        >
+          Türkçe
+        </button>
 
-  </div>
+        <div class="submenu nested" *ngIf="turkishOpen">
 
-</aside>
+          <button disabled>
+            Sözcükte Anlam
+          </button>
+
+          <button disabled>
+            Cümlede Anlam
+          </button>
+
+          <button class="active-lesson" (click)="goToLesson()">
+            Paragrafta Anlam
+          </button>
+
+          <button disabled>
+            Yazım Kuralları
+          </button>
+
+        </div>
+
+      </div>
+
+    </aside>
 
     <main class="student-content">
 
-      <!-- HOME -->
-
       <section *ngIf="activeSection === 'home'">
-
-        <h2>Hoş geldin Ayşe</h2>
+        <h2>Hoş geldin {{ studentPanelData?.studentName || 'Ayşe' }}</h2>
 
         <p>
           Adaptive Learning AI, öğrenme sürecini analiz ederek
           sana özel bir öğrenme deneyimi sunmayı hedefleyen
           AI destekli bir eğitim platformudur.
         </p>
-
       </section>
-
-      <!-- DASHBOARD -->
 
       <section *ngIf="activeSection === 'dashboard'">
-
         <h2>Öğrenci Dashboard</h2>
 
-        <p>Son quiz sonucu, ilerleme durumu ve kişiselleştirme bilgileri burada gösterilecek.</p>
-
-      </section>
-
-      <!-- LESSONS -->
-
-      <section *ngIf="activeSection === 'lessons'">
-
-        <h2>Dersler</h2>
-
-        <div class="lesson-card">
-
-          <h3>Türkçe</h3>
-
-          <div class="lesson-parts">
-
-            <button disabled>Sözcükte Anlam</button>
-
-            <button disabled>Cümlede Anlam</button>
-
-            <button class="active-lesson" (click)="goToLesson()">
-              Paragrafta Anlam
-            </button>
-
-            <button disabled>Yazım Kuralları</button>
-
-          </div>
-
-        </div>
-
+        <p>
+          Son quiz sonucu, ilerleme durumu ve kişiselleştirme bilgileri burada gösterilecek.
+        </p>
       </section>
 
     </main>
