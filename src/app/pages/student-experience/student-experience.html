@@ -1,0 +1,121 @@
+<div
+  class="student-page"
+  [class.personalized-view]="personalizedMode"
+  [class.large-text]="uiSettings.largerText"
+  [class.focus-view]="uiSettings.reduceDistractions"
+>
+
+  <header class="student-header">
+    <div>
+      <h1>Adaptive Learning AI</h1>
+      <p>Student Experience</p>
+    </div>
+
+    <button (click)="goToDashboard()">
+      Öğretmen Deneyimine Geç
+    </button>
+  </header>
+
+  <main class="student-content">
+
+    <section class="welcome-card" *ngIf="!personalizedMode">
+      <span>Demo Öğrenci</span>
+      <h2>Merhaba Ayşe, öğrenme deneyimine hoş geldin.</h2>
+      <p>
+        Bu ekranda önce standart ders içeriğini göreceksin.
+        Quiz tamamlandıktan sonra sana özel öğrenme deneyimi hazırlanacak.
+      </p>
+    </section>
+
+    <section class="personalized-message" *ngIf="personalizedMode">
+      <h2>Kişiselleştirilmiş öğrenme görünümü aktif.</h2>
+      <p>
+        İçerik, öğrenme sürecini daha rahat takip edebilmen için yeniden düzenlendi.
+      </p>
+    </section>
+
+    <section class="lesson-card">
+
+      <div class="lesson-info">
+        <span>Ders İçeriği</span>
+        <h2>Paragrafta Ana Fikir</h2>
+
+        <ng-container *ngIf="!uiSettings.stepByStepMode">
+          <p>
+            İnsanlar birlikte çalıştıklarında daha büyük başarılar elde edebilirler.
+            Özellikle <strong>yardımlaşma</strong> ve <strong>dayanışma</strong>,
+            toplumların gelişmesinde önemli bir rol oynar.
+            Bir kişinin tek başına yapamayacağı işler, birlikte hareket edildiğinde daha kolay tamamlanabilir.
+          </p>
+
+          <p>
+            Bu nedenle insanlar birbirlerine destek olmalı, ortak sorumluluk bilinciyle hareket etmelidir.
+            Yardımlaşma sadece bireylerin değil, toplumun da güçlenmesini sağlar.
+          </p>
+        </ng-container>
+
+        <div class="step-list" *ngIf="uiSettings.stepByStepMode">
+          <div class="step-card">
+            <span>Adım 1</span>
+            <p>
+              Paragrafın konusu insanların birlikte çalışması ve birbirine destek olmasıdır.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <span>Adım 2</span>
+            <p>
+              Yardımlaşma ve dayanışma, işleri kolaylaştırır ve toplumun güçlenmesini sağlar.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <span>Adım 3</span>
+            <p>
+              Bu paragrafın ana fikri: Birlikte hareket etmek başarıyı ve toplumsal dayanışmayı artırır.
+            </p>
+          </div>
+        </div>
+
+        <div class="hint-box" *ngIf="uiSettings.showHints">
+          <strong>İpucu:</strong>
+          Ana fikir, paragrafın tamamında anlatılmak istenen temel düşüncedir.
+        </div>
+      </div>
+
+      <div
+        class="lesson-progress"
+        [class.progress-focus]="uiSettings.showProgressFocus"
+      >
+        <p>İlerleme</p>
+
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+
+        <span>%35 tamamlandı</span>
+      </div>
+
+    </section>
+
+    <section class="quiz-start-card" *ngIf="!personalizedMode">
+      <h2>Hazırsan kısa bir quiz ile devam edelim.</h2>
+      <p>
+        Quiz tamamlandıktan sonra sana özel öğrenme deneyimi hazırlanacak.
+      </p>
+
+      <button (click)="startQuiz()">
+        Quiz’e Başla
+      </button>
+    </section>
+
+    <section class="challenge-card" *ngIf="personalizedMode">
+      <h2>Mini Pekiştirme</h2>
+      <p>
+        Bu paragrafta ana fikri bulurken en çok tekrar eden düşünceye odaklanabilirsin.
+      </p>
+    </section>
+
+  </main>
+
+</div>

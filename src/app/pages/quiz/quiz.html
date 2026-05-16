@@ -1,0 +1,47 @@
+<div class="quiz-page">
+
+  <header class="quiz-header">
+    <div>
+      <h1>Adaptive Learning AI</h1>
+      <p *ngIf="quizData">{{ quizData.lesson }} · {{ quizData.topic }}</p>
+    </div>
+  </header>
+
+  <main class="quiz-content">
+
+    <section class="quiz-card" *ngIf="!isLoading && currentQuestion">
+
+      <div class="quiz-progress">
+        <span>Soru {{ currentQuestionIndex + 1 }} / {{ questions.length }}</span>
+        <span>{{ currentQuestion.topic }}</span>
+      </div>
+
+      <h2>{{ currentQuestion.questionText }}</h2>
+
+      <div class="options-list">
+        <button
+          *ngFor="let option of currentQuestion.options"
+          [class.selected]="selectedOptionId === option.id"
+          (click)="selectOption(option.id)"
+        >
+          {{ option.text }}
+        </button>
+      </div>
+
+      <button
+        class="next-button"
+        (click)="nextQuestion()"
+      >
+        {{ currentQuestionIndex === questions.length - 1 ? 'Quiz’i Bitir' : 'Devam Et' }}
+      </button>
+
+    </section>
+
+    <section class="quiz-card" *ngIf="isLoading">
+      <h2>Quiz hazırlanıyor...</h2>
+      <p>Lütfen bekle.</p>
+    </section>
+
+  </main>
+
+</div>

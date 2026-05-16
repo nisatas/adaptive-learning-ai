@@ -1,0 +1,108 @@
+<div class="dashboard-layout" *ngIf="dashboardData">
+
+  <aside class="sidebar">
+    <div class="teacher-card">
+      <div class="teacher-avatar">ZD</div>
+      <h3>{{ dashboardData.teacherName }}</h3>
+      <p>{{ dashboardData.teacherRole }}</p>
+      <span>{{ dashboardData.className }}</span>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a href="#dashboard" class="active">Dashboard</a>
+      <a href="#class-summary">Sınıf Özeti</a>
+      <a href="#analytics">Analizler</a>
+      <a class="disabled">Ayarlar</a>
+    </nav>
+  </aside>
+
+  <main class="dashboard-content">
+
+    <header class="top-header">
+      <div>
+        <h1>Adaptive Learning AI</h1>
+        <p>{{ dashboardData.lesson }} · {{ dashboardData.topic }}</p>
+      </div>
+
+      <button class="experience-button" (click)="goToStudentExperience()">
+        Öğrenci Deneyimine Geç
+      </button>
+    </header>
+
+    <section id="dashboard" class="stats-grid">
+      <div class="stat-card">
+        <h2>{{ dashboardData.studentCount }}</h2>
+        <p>Toplam Öğrenci</p>
+      </div>
+
+      <div class="stat-card">
+        <h2>{{ dashboardData.classAverage }}</h2>
+        <p>Sınıf Ortalaması</p>
+      </div>
+
+      <div class="stat-card">
+        <h2>{{ dashboardData.averageResponseTime }} sn</h2>
+        <p>Ortalama Yanıt Süresi</p>
+      </div>
+
+      <div class="stat-card">
+        <h2>{{ dashboardData.supportSuggestedCount }}</h2>
+        <p>Destek Önerilen Öğrenci</p>
+      </div>
+    </section>
+
+    <section id="class-summary" class="bottom-grid">
+      <div class="action-card">
+        <h2>Sınıf Özeti</h2>
+        <p><strong>En çok zorlanılan konu:</strong> {{ dashboardData.mostDifficultTopic }}</p>
+        <p><strong>İleri seviye soruya hazır öğrenci:</strong> {{ dashboardData.challengeReadyCount }}</p>
+      </div>
+
+      <div class="distribution-card">
+        <h2>{{ dashboardData.frontendHints.supportDistributionTarget }}</h2>
+
+        <div
+          class="distribution-item"
+          *ngFor="let item of dashboardData.supportDistribution"
+        >
+          <span>{{ item.label }}</span>
+          <strong>%{{ item.percentage }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+
+      <div class="students-section">
+        <div class="section-title">
+          <h2>{{ dashboardData.frontendHints.recommendedActionsTarget }}</h2>
+          <p>Agent analizlerine göre öğretmen için önerilen sınıf içi aksiyonlar.</p>
+        </div>
+
+        <div class="student-grid">
+          <div class="student-card" *ngFor="let action of dashboardData.recommendedActions">
+            <div class="student-info">
+              <p>{{ action }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside id="analytics" class="agent-panel">
+        <h2>{{ dashboardData.frontendHints.agentFeedTarget }}</h2>
+
+        <div
+          class="agent-card"
+          *ngFor="let feed of dashboardData.puqAiAgentFeed"
+        >
+          <span>{{ feed.title }}</span>
+          <p>{{ feed.message }}</p>
+          <small>{{ feed.source }}</small>
+        </div>
+      </aside>
+
+    </section>
+
+  </main>
+
+</div>
