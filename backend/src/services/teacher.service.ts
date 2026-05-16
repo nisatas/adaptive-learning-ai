@@ -3,8 +3,10 @@ import { getLastSubmitAt, getLastQuizResult } from '../data/inMemoryStore';
 import {
   TeacherDashboardAnalysisResponse,
   TeacherDashboardPromptInput,
+  TeacherDashboardStudentAction,
   TeacherDashboardStudentSnapshot,
   TeacherDashboardWorkflowSuggestion,
+  WeeklyReportWorkflowResponse,
 } from '../prompts/contracts/promptContracts';
 import {
   buildPersonalizationStatus,
@@ -14,9 +16,14 @@ import { aiPromptService } from './aiPrompt.service';
 import {
   TeacherDashboardSummary,
   TeacherDashboardFrontendHints,
+  TeacherDashboardMeetStudent,
+  TeacherDashboardProgressTrend,
+  TeacherDashboardStudentNeedingSupport,
+  TeacherDashboardWeeklyReport,
   TeacherStudentListItem,
   TeacherStudentsListResponse,
   TeacherStudentLastQuizStatus,
+  TeacherSupportPriority,
   InternalLearningProfile,
   SupportDistributionItem,
   PuqAiAgentFeedItem,
@@ -73,6 +80,8 @@ const PROFILE_ORDER: InternalLearningProfile[] = [
 
 const MIN_RECOMMENDED_ACTIONS = 3;
 const MIN_FEED_ITEMS = 3;
+/** Demo: önceki hafta sınıf ortalaması (geçmiş veri yoksa) */
+const DEMO_PREVIOUS_WEEK_CLASS_AVERAGE = 63;
 
 function safeNumber(n: unknown, fallback = 0): number {
   const x = typeof n === 'number' ? n : Number(n);
@@ -371,6 +380,458 @@ function buildTeacherDashboardStudentSnapshots(): TeacherDashboardStudentSnapsho
   });
 }
 
+function safeSupportPriority(value: unknown): TeacherSupportPriority {
+  if (value === 'low' || value === 'high') {
+    return value;
+  }
+  return 'medium';
+}
+
+function buildRuleBasedStudentsNeedingSupport(
+  snapshots: TeacherDashboardStudentSnapshot[],
+  lesson: string,
+  classAverage: number,
+  averageResponseTime: number
+): TeacherDashboardStudentNeedingSupport[] {
+  const candidates = snapshots
+    .filter(
+      (student) =>
+        student.score < Math.max(classAverage, 70) ||
+        student.averageTimeSeconds > averageResponseTime
+    )
+    .sort((a, b) => a.score - b.score)
+    .map((student) => ({
+      studentId: student.studentId,
+      studentName: student.studentName,
+      lesson,
+      topic: student.mostDifficultTopic,
+      reason: `${student.mostDifficultTopic} konusunda başarı oranı sınıf ortalamasının altında görünüyor.`,
+      suggestedAction:
+        '10 dakikalık kısa tekrar ve 5 soruluk mini quiz önerilir.',
+      priority: safeSupportPriority(
+        student.score < 50 ? 'high' : student.score < 65 ? 'medium' : 'low'
+      ),
+    }));
+
+  if (candidates.length > 0) {
+    return candidates;
+  }
+
+  const fallbackStudent =
+    snapshots.find((student) => student.studentId === 'stu-1') ??
+    snapshots[0];
+
+  if (!fallbackStudent) {
+    return [];
+  }
+
+  return [
+    {
+      studentId: fallbackStudent.studentId,
+      studentName: fallbackStudent.studentName,
+      lesson,
+      topic: fallbackStudent.mostDifficultTopic,
+      reason: `${fallbackStudent.mostDifficultTopic} konusunda ek destek faydalı olabilir.`,
+      suggestedAction:
+        '10 dakikalık kısa tekrar ve 5 soruluk mini quiz önerilir.',
+      priority: 'medium',
+    },
+  ];
+}
+
+function normalizeStudentsNeedingSupportFromAi(
+  items: TeacherDashboardStudentAction[],
+  snapshots: TeacherDashboardStudentSnapshot[],
+  lesson: string,
+  topicFallback: string
+): TeacherDashboardStudentNeedingSupport[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  return items.map((item, index) => {
+    const snapshot =
+      snapshots.find((student) => student.studentId === item.studentId) ??
+      snapshots[index];
+
+    const topic = safeStr(
+      snapshot?.mostDifficultTopic,
+      topicFallback
+    );
+
+    return {
+      studentId: safeStr(item.studentId, snapshot?.studentId ?? 'stu-1'),
+      studentName: safeStr(item.studentName, snapshot?.studentName ?? 'Öğrenci'),
+      lesson,
+      topic,
+      reason: sanitizeAiOutput(
+        safeStr(item.reason, ''),
+        `${topic} konusunda kısa tekrar ve yönlendirilmiş alıştırma faydalı olabilir.`
+      ).text,
+      suggestedAction: sanitizeAiOutput(
+        safeStr(item.suggestedAction, ''),
+        '10 dakikalık kısa tekrar ve 5 soruluk mini quiz önerilir.'
+      ).text,
+      priority: safeSupportPriority(item.priority),
+    };
+  });
+}
+
+function ensureStudentsNeedingSupport(
+  items: TeacherDashboardStudentNeedingSupport[] | undefined,
+  snapshots: TeacherDashboardStudentSnapshot[],
+  lesson: string,
+  classAverage: number,
+  averageResponseTime: number,
+  topicFallback: string
+): TeacherDashboardStudentNeedingSupport[] {
+  const cleaned = (items ?? [])
+    .map((item) => ({
+      studentId: safeStr(item.studentId, ''),
+      studentName: safeStr(item.studentName, 'Öğrenci'),
+      lesson: safeStr(item.lesson, lesson),
+      topic: safeStr(item.topic, topicFallback),
+      reason: safeStr(
+        item.reason,
+        `${topicFallback} konusunda ek destek faydalı olabilir.`
+      ),
+      suggestedAction: safeStr(
+        item.suggestedAction,
+        '10 dakikalık kısa tekrar ve 5 soruluk mini quiz önerilir.'
+      ),
+      priority: safeSupportPriority(item.priority),
+    }))
+    .filter((item) => item.studentId.length > 0);
+
+  if (cleaned.length > 0) {
+    return cleaned;
+  }
+
+  return buildRuleBasedStudentsNeedingSupport(
+    snapshots,
+    lesson,
+    classAverage,
+    averageResponseTime
+  );
+}
+
+function mapStudentsNeedingSupportToMeetList(
+  items: TeacherDashboardStudentNeedingSupport[],
+  defaultDuration = 15
+): TeacherDashboardMeetStudent[] {
+  return items.map((item) => ({
+    id: item.studentId,
+    name: item.studentName,
+    email: `${item.studentId}@demo.local`,
+    lesson: item.lesson,
+    topic: item.topic,
+    reason: item.reason,
+    suggestedDuration: defaultDuration,
+    priority: item.priority,
+  }));
+}
+
+function computeWeeklyProgressTrend(
+  currentAverage: number,
+  previousAverage = DEMO_PREVIOUS_WEEK_CLASS_AVERAGE
+): TeacherDashboardProgressTrend {
+  if (currentAverage > previousAverage + 1) {
+    return 'improving';
+  }
+  if (currentAverage < previousAverage - 1) {
+    return 'declining';
+  }
+  return 'stable';
+}
+
+function progressTrendLabel(trend: TeacherDashboardProgressTrend): string {
+  if (trend === 'improving') {
+    return 'yükseldi';
+  }
+  if (trend === 'declining') {
+    return 'düştü';
+  }
+  return 'stabil kaldı';
+}
+
+function buildStudentsNeedingSupportSummaryLines(
+  students: TeacherDashboardStudentNeedingSupport[]
+): string[] {
+  const lines = students.slice(0, 3).map((student) => {
+    const reason = safeStr(student.reason, student.topic);
+    const normalizedReason = reason.endsWith('.') ? reason : `${reason}.`;
+    return `${student.studentName}: ${normalizedReason}`;
+  });
+
+  if (lines.length > 0) {
+    return lines;
+  }
+
+  return ['Bu hafta belirgin ek destek ihtiyacı gösteren öğrenci bulunmuyor.'];
+}
+
+function buildWeeklyReportKeyFindings(
+  dashboard: TeacherDashboardSummary
+): string[] {
+  return [
+    `${dashboard.supportSuggestedCount} öğrenci destek ihtiyacı gösteriyor.`,
+    `${dashboard.challengeReadyCount} öğrenci ileri seviye sorulara hazır.`,
+    `Ortalama cevap süresi ${dashboard.averageResponseTime} saniye; sınıf takibi için izlenmeye devam edilmeli.`,
+  ];
+}
+
+function buildWeeklyReportTeacherActions(
+  mostDifficultTopic: string,
+  recommendedActions: RecommendedAction[]
+): string[] {
+  const fromRecommended = recommendedActions
+    .slice(0, 2)
+    .map((action) => safeStr(action, ''))
+    .filter((action) => action.length > 0);
+
+  const topic = safeStr(mostDifficultTopic, FALLBACK_MOST_DIFFICULT_TOPIC);
+  const defaults = [
+    `Gelecek derste 10 dakikalık ${topic} tekrarı yapılması önerilir.`,
+    'Kısa uygulama soruları ile pekiştirme yapılabilir.',
+  ];
+
+  const merged = [...fromRecommended];
+  for (const item of defaults) {
+    if (merged.length >= 2) {
+      break;
+    }
+    if (!merged.includes(item)) {
+      merged.push(item);
+    }
+  }
+
+  return merged.slice(0, Math.max(2, merged.length));
+}
+
+function buildWeeklyReportNextWeekFocus(mostDifficultTopic: string): string[] {
+  const topic = safeStr(mostDifficultTopic, FALLBACK_MOST_DIFFICULT_TOPIC);
+  return [topic, 'Problem çözme', 'Kısa tekrar etkinliği'];
+}
+
+function buildWeeklyReport(
+  dashboard: TeacherDashboardSummary,
+  _snapshots: TeacherDashboardStudentSnapshot[]
+): TeacherDashboardWeeklyReport {
+  const mostDifficultTopic = safeStr(
+    dashboard.mostDifficultTopic,
+    FALLBACK_MOST_DIFFICULT_TOPIC
+  );
+  const progressTrend = computeWeeklyProgressTrend(dashboard.classAverage);
+  const previousAverage = DEMO_PREVIOUS_WEEK_CLASS_AVERAGE;
+
+  return {
+    workflowType: 'weekly_report',
+    classSummary: `Bu hafta sınıf ortalaması %${previousAverage}'ten %${dashboard.classAverage}'e ${progressTrendLabel(progressTrend)}.`,
+    progressTrend,
+    mostDifficultTopic,
+    keyFindings: buildWeeklyReportKeyFindings(dashboard),
+    studentsNeedingSupportSummary: buildStudentsNeedingSupportSummaryLines(
+      dashboard.studentsNeedingSupport
+    ),
+    recommendedTeacherActions: buildWeeklyReportTeacherActions(
+      mostDifficultTopic,
+      dashboard.recommendedActions
+    ),
+    nextWeekFocus: buildWeeklyReportNextWeekFocus(mostDifficultTopic),
+  };
+}
+
+function mapAiProgressTrend(
+  value: unknown,
+  fallback: TeacherDashboardProgressTrend
+): TeacherDashboardProgressTrend {
+  if (value === 'improving' || value === 'stable') {
+    return value;
+  }
+  if (value === 'declining' || value === 'decreasing') {
+    return 'declining';
+  }
+  return fallback;
+}
+
+function mapAiWeeklyReport(
+  ai: WeeklyReportWorkflowResponse,
+  fallback: TeacherDashboardWeeklyReport
+): TeacherDashboardWeeklyReport {
+  const keyFindings = asStringArray(ai.keyFindings, fallback.keyFindings).slice(
+    0,
+    6
+  );
+  const recommendedTeacherActions = asStringArray(
+    ai.recommendedTeacherActions,
+    fallback.recommendedTeacherActions
+  ).slice(0, 6);
+  const nextWeekFocus = asStringArray(ai.nextWeekFocus, fallback.nextWeekFocus).slice(
+    0,
+    6
+  );
+
+  const supportSummaryFromAi = Array.isArray(ai.studentsNeedingSupportSummary)
+    ? ai.studentsNeedingSupportSummary
+        .map((item) => {
+          if (typeof item === 'string') {
+            return safeStr(item, '');
+          }
+          const name = safeStr(item.studentName, 'Öğrenci');
+          const reason = safeStr(item.reason, '');
+          const action = safeStr(item.suggestedAction, '');
+          if (reason && action) {
+            return `${name}: ${reason} ${action}`.trim();
+          }
+          return reason ? `${name}: ${reason}` : `${name}: Ek destek önerilir.`;
+        })
+        .filter((line) => line.length > 0)
+    : [];
+
+  const studentsNeedingSupportSummary =
+    supportSummaryFromAi.length > 0
+      ? supportSummaryFromAi
+      : fallback.studentsNeedingSupportSummary;
+
+  const mostDifficultTopic = safeStr(
+    ai.mostDifficultTopic,
+    fallback.mostDifficultTopic
+  );
+  const progressTrend = mapAiProgressTrend(ai.progressTrend, fallback.progressTrend);
+
+  return {
+    workflowType: 'weekly_report',
+    classSummary: sanitizeAiOutput(
+      safeStr(ai.classSummary, ''),
+      fallback.classSummary
+    ).text,
+    progressTrend,
+    mostDifficultTopic,
+    keyFindings: keyFindings.length >= 3 ? keyFindings : fallback.keyFindings,
+    studentsNeedingSupportSummary,
+    recommendedTeacherActions:
+      recommendedTeacherActions.length >= 2
+        ? recommendedTeacherActions
+        : fallback.recommendedTeacherActions,
+    nextWeekFocus:
+      nextWeekFocus.length >= 3 ? nextWeekFocus : fallback.nextWeekFocus,
+  };
+}
+
+function asStringArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+  const items = value
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim());
+  return items.length > 0 ? items : fallback;
+}
+
+function ensureWeeklyReport(
+  report: TeacherDashboardWeeklyReport | undefined,
+  dashboard: TeacherDashboardSummary,
+  snapshots: TeacherDashboardStudentSnapshot[]
+): TeacherDashboardWeeklyReport {
+  const fallback = buildWeeklyReport(dashboard, snapshots);
+  if (!report) {
+    return fallback;
+  }
+
+  const keyFindings = asStringArray(report.keyFindings, fallback.keyFindings);
+  const recommendedTeacherActions = asStringArray(
+    report.recommendedTeacherActions,
+    fallback.recommendedTeacherActions
+  );
+  const nextWeekFocus = asStringArray(report.nextWeekFocus, fallback.nextWeekFocus);
+  const studentsNeedingSupportSummary = asStringArray(
+    report.studentsNeedingSupportSummary,
+    fallback.studentsNeedingSupportSummary
+  );
+
+  return {
+    workflowType: 'weekly_report',
+    classSummary: safeStr(report.classSummary, fallback.classSummary),
+    progressTrend: mapAiProgressTrend(report.progressTrend, fallback.progressTrend),
+    mostDifficultTopic: safeStr(report.mostDifficultTopic, fallback.mostDifficultTopic),
+    keyFindings: keyFindings.length >= 3 ? keyFindings : fallback.keyFindings,
+    studentsNeedingSupportSummary,
+    recommendedTeacherActions:
+      recommendedTeacherActions.length >= 2
+        ? recommendedTeacherActions
+        : fallback.recommendedTeacherActions,
+    nextWeekFocus:
+      nextWeekFocus.length >= 3 ? nextWeekFocus : fallback.nextWeekFocus,
+  };
+}
+
+async function enrichTeacherDashboardWeeklyReport(
+  dashboard: TeacherDashboardSummary,
+  snapshots: TeacherDashboardStudentSnapshot[]
+): Promise<TeacherDashboardSummary> {
+  const fallback = buildWeeklyReport(dashboard, snapshots);
+
+  try {
+    const ai = await aiPromptService.generateWeeklyReportWorkflow({
+      teacherName: dashboard.teacherName,
+      className: dashboard.className,
+      lesson: dashboard.lesson,
+      topic: dashboard.topic,
+      classAverage: dashboard.classAverage,
+      previousWeekAverage: DEMO_PREVIOUS_WEEK_CLASS_AVERAGE,
+      mostDifficultTopic: dashboard.mostDifficultTopic,
+      studentCount: dashboard.studentCount,
+      supportSuggestedCount: dashboard.supportSuggestedCount,
+      studentsNeedingSupport: snapshots,
+    });
+
+    return {
+      ...dashboard,
+      weeklyReport: mapAiWeeklyReport(ai, fallback),
+    };
+  } catch {
+    return {
+      ...dashboard,
+      weeklyReport: fallback,
+    };
+  }
+}
+
+function finalizeTeacherDashboard(
+  dashboard: TeacherDashboardSummary,
+  snapshots: TeacherDashboardStudentSnapshot[]
+): TeacherDashboardSummary {
+  const lesson = safeStr(dashboard.lesson, 'Türkçe');
+  const topicFallback = safeStr(
+    dashboard.mostDifficultTopic,
+    FALLBACK_MOST_DIFFICULT_TOPIC
+  );
+
+  const studentsNeedingSupport = ensureStudentsNeedingSupport(
+    dashboard.studentsNeedingSupport,
+    snapshots,
+    lesson,
+    dashboard.classAverage,
+    dashboard.averageResponseTime,
+    topicFallback
+  );
+
+  const dashboardWithStudents: TeacherDashboardSummary = {
+    ...dashboard,
+    studentsNeedingSupport,
+    students: mapStudentsNeedingSupportToMeetList(studentsNeedingSupport),
+  };
+
+  return {
+    ...dashboardWithStudents,
+    weeklyReport: ensureWeeklyReport(
+      dashboardWithStudents.weeklyReport,
+      dashboardWithStudents,
+      snapshots
+    ),
+  };
+}
+
 function buildTeacherDashboardPromptInput(
   dashboard: TeacherDashboardSummary,
   students: TeacherDashboardStudentSnapshot[]
@@ -515,7 +976,8 @@ function enrichPuqAiAgentFeedFromAnalysis(
 
 function applyTeacherDashboardAnalysis(
   base: TeacherDashboardSummary,
-  analysis: TeacherDashboardAnalysisResponse
+  analysis: TeacherDashboardAnalysisResponse,
+  snapshots: TeacherDashboardStudentSnapshot[]
 ): TeacherDashboardSummary {
   const aiTopic = safeStr(analysis.mostDifficultTopic, '');
   const mostDifficultTopic =
@@ -536,11 +998,25 @@ function applyTeacherDashboardAnalysis(
     )
   );
 
+  const lesson = safeStr(base.lesson, 'Türkçe');
+  const topicFallback = safeStr(mostDifficultTopic, base.mostDifficultTopic);
+  const aiSupport = normalizeStudentsNeedingSupportFromAi(
+    analysis.studentsNeedingSupport,
+    snapshots,
+    lesson,
+    topicFallback
+  );
+
+  const studentsNeedingSupport =
+    aiSupport.length > 0 ? aiSupport : base.studentsNeedingSupport;
+
   return {
     ...base,
     mostDifficultTopic: safeStr(mostDifficultTopic, base.mostDifficultTopic),
     recommendedActions,
     puqAiAgentFeed,
+    studentsNeedingSupport,
+    students: mapStudentsNeedingSupportToMeetList(studentsNeedingSupport),
   };
 }
 
@@ -552,7 +1028,7 @@ async function enrichTeacherDashboardWithAi(
     const analysis = await aiPromptService.generateTeacherDashboardAnalysis(
       buildTeacherDashboardPromptInput(base, students)
     );
-    return applyTeacherDashboardAnalysis(base, analysis);
+    return applyTeacherDashboardAnalysis(base, analysis, students);
   } catch {
     return base;
   }
@@ -588,13 +1064,26 @@ export async function getTeacherDashboard(): Promise<TeacherDashboardSummary> {
     0
   );
 
-  const baseDashboard: TeacherDashboardSummary = {
+  const lessonLabel = safeStr(CLASS_META.lesson, 'Türkçe');
+  const classAverage = Math.round(safeNumber(CLASS_META.classAverage, 0));
+  const averageResponseTime = Math.round(
+    safeNumber(CLASS_META.averageResponseTime, 0)
+  );
+
+  const ruleBasedSupport = buildRuleBasedStudentsNeedingSupport(
+    studentSnapshots,
+    lessonLabel,
+    classAverage,
+    averageResponseTime
+  );
+
+  const dashboardCore = {
     className: safeStr(CLASS_META.className, 'Sınıf'),
-    lesson: safeStr(CLASS_META.lesson, 'Türkçe'),
+    lesson: lessonLabel,
     topic: safeStr(CLASS_META.topic, 'Ders özeti'),
     studentCount: studentCountEffective,
-    classAverage: Math.round(safeNumber(CLASS_META.classAverage, 0)),
-    averageResponseTime: Math.round(safeNumber(CLASS_META.averageResponseTime, 0)),
+    classAverage,
+    averageResponseTime,
     supportSuggestedCount: Math.max(
       0,
       Math.round(safeNumber(CLASS_META.supportSuggestedCount, 0))
@@ -613,9 +1102,29 @@ export async function getTeacherDashboard(): Promise<TeacherDashboardSummary> {
     supportDistribution,
     puqAiAgentFeed,
     frontendHints: { ...DASHBOARD_FRONTEND_HINTS },
+    studentsNeedingSupport: ruleBasedSupport,
+    students: mapStudentsNeedingSupportToMeetList(ruleBasedSupport),
   };
 
-  return enrichTeacherDashboardWithAi(baseDashboard, studentSnapshots);
+  const baseDashboard: TeacherDashboardSummary = {
+    ...dashboardCore,
+    weeklyReport: buildWeeklyReport(
+      { ...dashboardCore, weeklyReport: undefined! },
+      studentSnapshots
+    ),
+  };
+
+  const enriched = await enrichTeacherDashboardWithAi(
+    baseDashboard,
+    studentSnapshots
+  );
+
+  const withWeeklyReport = await enrichTeacherDashboardWeeklyReport(
+    enriched,
+    studentSnapshots
+  );
+
+  return finalizeTeacherDashboard(withWeeklyReport, studentSnapshots);
 }
 
 function normalizeLastQuizStatus(value: unknown): TeacherStudentLastQuizStatus {

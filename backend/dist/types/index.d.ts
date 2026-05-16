@@ -130,6 +130,38 @@ export interface TeacherDashboardFrontendHints {
     agentFeedTarget: string;
     settingsStatus: string;
 }
+export type TeacherSupportPriority = 'low' | 'medium' | 'high';
+export interface TeacherDashboardStudentNeedingSupport {
+    studentId: string;
+    studentName: string;
+    lesson: string;
+    topic: string;
+    reason: string;
+    suggestedAction: string;
+    priority: TeacherSupportPriority;
+}
+export type TeacherDashboardProgressTrend = 'improving' | 'stable' | 'declining';
+export interface TeacherDashboardWeeklyReport {
+    workflowType: 'weekly_report';
+    classSummary: string;
+    progressTrend: TeacherDashboardProgressTrend;
+    mostDifficultTopic: string;
+    keyFindings: string[];
+    studentsNeedingSupportSummary: string[];
+    recommendedTeacherActions: string[];
+    nextWeekFocus: string[];
+}
+/** Frontend meet listesi — dashboard.html `students` alanı */
+export interface TeacherDashboardMeetStudent {
+    id: string;
+    name: string;
+    email: string;
+    lesson: string;
+    topic: string;
+    reason: string;
+    suggestedDuration: number;
+    priority: TeacherSupportPriority;
+}
 export interface TeacherDashboardSummary {
     className: string;
     lesson: string;
@@ -147,6 +179,9 @@ export interface TeacherDashboardSummary {
     supportDistribution: SupportDistributionItem[];
     puqAiAgentFeed: PuqAiAgentFeedItem[];
     frontendHints: TeacherDashboardFrontendHints;
+    studentsNeedingSupport: TeacherDashboardStudentNeedingSupport[];
+    students: TeacherDashboardMeetStudent[];
+    weeklyReport: TeacherDashboardWeeklyReport;
 }
 export type TeacherStudentLastQuizStatus = 'Tamamlandı' | 'Bekleniyor';
 export interface TeacherStudentListItem {
