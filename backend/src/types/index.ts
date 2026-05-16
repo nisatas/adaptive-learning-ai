@@ -444,6 +444,27 @@ export interface StudentNotification {
   status: StudentNotificationStatus;
 }
 
+export interface StudentDashboardLearningSummary {
+  activeLesson: string;
+  activeTopic: string;
+  lastQuizScore: number;
+  progressPercentage: number;
+}
+
+export interface StudentDashboardSupportPlan {
+  title: string;
+  description: string;
+  steps: string[];
+  nextQuizDifficulty: string;
+}
+
+export interface StudentDashboardTodayRecommendation {
+  title: string;
+  message: string;
+  actionLabel: string;
+  targetRoute: string;
+}
+
 export interface StudentDashboardResponse {
   studentId: string;
   studentName: string;
@@ -451,6 +472,9 @@ export interface StudentDashboardResponse {
   topic: string;
   score: number;
   studentMessage: string;
+  learningSummary: StudentDashboardLearningSummary;
+  supportPlan: StudentDashboardSupportPlan;
+  todayRecommendation: StudentDashboardTodayRecommendation;
   uiSettings: UiSettings;
   notifications: StudentNotification[];
 }
