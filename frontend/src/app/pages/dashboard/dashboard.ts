@@ -31,6 +31,6 @@ export class Dashboard implements OnInit {
   }
 
   goToStudentExperience(): void {
-    this.router.navigate(['/student', 'stu-1']);
+    this.router.navigate(['/student-panel', 'stu-1']);
   }
 }

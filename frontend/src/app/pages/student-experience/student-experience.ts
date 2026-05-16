@@ -53,8 +53,11 @@ export class StudentExperience implements OnInit {
   }
 
   goToDashboard(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/teacher-dashboard']);
   }
+  goToStudentPanel(): void {
+  this.router.navigate(['/student-panel', 'stu-1']);
+}
 
   startQuiz(): void {
     localStorage.removeItem('adaptiveUiSettings');
