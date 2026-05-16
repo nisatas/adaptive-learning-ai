@@ -1,4 +1,7 @@
-<div class="quiz-page">
+<div class="quiz-page"
+[class.large-text]="uiSettings.largerText"
+  [class.focus-view]="uiSettings.reduceDistractions"
+  [class.progress-focus]="uiSettings.showProgressFocus">
 
   <header class="quiz-header">
     <div>
@@ -16,7 +19,12 @@
         <span>{{ currentQuestion.topic }}</span>
       </div>
 
-      <h2>{{ currentQuestion.questionText }}</h2>
+      <h2>{{ currentQuestion.questionText }}</h2
+        >
+        <div class="hint-box" *ngIf="uiSettings.showHints">
+  <strong>İpucu:</strong>
+  Soruyu dikkatlice oku ve anahtar kelimelere odaklan.
+</div>
 
       <div class="options-list">
         <button

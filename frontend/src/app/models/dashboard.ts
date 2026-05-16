@@ -42,6 +42,7 @@ export interface DashboardResponse {
   puqAiAgentFeed: PuqAiAgentFeedItem[];
   frontendHints: FrontendHints;
   students: DashboardStudent[];
+  weeklyReport: WeeklyReport;
 }
 export interface DashboardStudent {
   id: string;
@@ -52,4 +53,14 @@ export interface DashboardStudent {
   reason: string;
   suggestedDuration: number;
   priority: 'low' | 'medium' | 'high';
+}
+export interface WeeklyReport {
+  workflowType: string;
+  classSummary: string;
+  progressTrend: string;
+  mostDifficultTopic: string;
+  keyFindings: string[];
+  studentsNeedingSupportSummary: string[];
+  recommendedTeacherActions: string[];
+  nextWeekFocus: string[];
 }

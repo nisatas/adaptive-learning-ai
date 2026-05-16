@@ -8,12 +8,18 @@
   <header class="student-header">
     <div>
       <h1>Adaptive Learning AI</h1>
-      <p>Öğrenci öğrenme paneli</p>
+      <p>Dersler / Türkçe / Paragrafta Anlam</p>
     </div>
 
-    <button (click)="goToDashboard()">
-      Öğretmen Paneline Geç
-    </button>
+    <div class="header-actions">
+      <button (click)="goToStudentPanel()">
+        Öğrenci Paneline Dön
+      </button>
+
+      <button (click)="goToDashboard()">
+        Öğretmen Paneline Geç
+      </button>
+    </div>
   </header>
 
   <div class="student-body">

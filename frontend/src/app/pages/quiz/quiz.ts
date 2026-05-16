@@ -40,6 +40,15 @@ export class Quiz implements OnInit {
   selectedOptionId = '';
   isLoading = true;
 
+  uiSettings = {
+  largerText: false,
+  showHints: false,
+  stepByStepMode: false,
+  reduceDistractions: false,
+  showProgressFocus: false,
+  showChallengeQuestions: false
+};
+
   answers: {
     questionId: string;
     selectedOptionId: string;
@@ -53,18 +62,24 @@ export class Quiz implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.quizService.getDemoQuiz().subscribe({
-      next: (data) => {
-        this.quizData = data;
-        this.questions = data.questions;
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Quiz soruları alınamadı:', error);
-        this.isLoading = false;
-      }
-    });
+  const savedSettings = localStorage.getItem('adaptiveUiSettings');
+
+  if (savedSettings) {
+    this.uiSettings = JSON.parse(savedSettings);
   }
+
+  this.quizService.getDemoQuiz().subscribe({
+    next: (data) => {
+      this.quizData = data;
+      this.questions = data.questions;
+      this.isLoading = false;
+    },
+    error: (error) => {
+      console.error('Quiz soruları alınamadı:', error);
+      this.isLoading = false;
+    }
+  });
+}
 
   get currentQuestion(): QuizQuestion {
     return this.questions[this.currentQuestionIndex];

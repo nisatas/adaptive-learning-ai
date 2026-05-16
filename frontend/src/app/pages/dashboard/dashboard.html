@@ -12,6 +12,10 @@
   <button (click)="scrollToSection('dashboard')">
     Dashboard
   </button>
+  
+  <button (click)="scrollToSection('weekly-report')">
+  Haftalık AI Raporu
+</button>
 
   <button (click)="scrollToSection('class-summary')">
     Sınıf Özeti
@@ -61,6 +65,80 @@
         <p>Destek Önerilen Öğrenci</p>
       </div>
     </section>
+    <section
+  id="weekly-report"
+  class="weekly-report-section"
+  *ngIf="dashboardData.weeklyReport"
+>
+
+  <div class="weekly-report-card">
+
+    <div class="weekly-report-header">
+      <h2>Haftalık AI Sınıf Raporu</h2>
+
+      <span class="trend-badge">
+        {{ dashboardData.weeklyReport.progressTrend }}
+      </span>
+    </div>
+
+    <p class="weekly-summary">
+      {{ dashboardData.weeklyReport.classSummary }}
+    </p>
+
+    <div class="weekly-grid">
+
+      <div class="weekly-box">
+        <h3>En Çok Zorlanılan Konu</h3>
+
+        <p>
+          {{ dashboardData.weeklyReport.mostDifficultTopic }}
+        </p>
+      </div>
+
+      <div class="weekly-box">
+        <h3>Önemli Bulgular</h3>
+
+        <ul>
+          <li
+            *ngFor="let finding of dashboardData.weeklyReport.keyFindings"
+          >
+            {{ finding }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="weekly-box">
+        <h3>Önerilen Öğretmen Aksiyonları</h3>
+
+        <ul>
+          <li
+            *ngFor="let action of dashboardData.weeklyReport.recommendedTeacherActions"
+          >
+            {{ action }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="weekly-box">
+        <h3>Gelecek Hafta Odak</h3>
+
+        <div class="focus-tags">
+
+          <span
+            class="focus-tag"
+            *ngFor="let focus of dashboardData.weeklyReport.nextWeekFocus"
+          >
+            {{ focus }}
+          </span>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
 
     <section id="class-summary" class="bottom-grid">
       <div class="action-card">

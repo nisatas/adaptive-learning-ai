@@ -2,54 +2,62 @@
 
   <header class="student-header">
 
-  <div class="header-left">
-    <h1>Adaptive Learning AI</h1>
-    <p>Öğrenci öğrenme paneli</p>
-  </div>
+    <div class="header-left">
+      <h1>Adaptive Learning AI</h1>
+      <p>Öğrenci öğrenme paneli</p>
+    </div>
 
-  <div class="header-right">
+    <div class="header-right">
 
-    <div class="notification-wrapper">
+      <div class="notification-wrapper">
 
-      <button
-        class="notification-button"
-        (click)="toggleNotifications()"
-      >
-        🔔 Bildirimler
-      </button>
-
-      <div
-        class="notification-dropdown"
-        *ngIf="notificationsOpen"
-      >
+        <button
+          class="notification-button"
+          (click)="toggleNotifications()"
+        >
+          🔔 Bildirimler
+        </button>
 
         <div
-          class="notification-card"
-          *ngFor="let notification of notifications"
+          class="notification-dropdown"
+          *ngIf="notificationsOpen"
         >
-          <h4>{{ notification.title }}</h4>
 
-          <p>{{ notification.message }}</p>
+          <div
+            class="notification-card"
+            *ngFor="let notification of notifications"
+          >
+            <h4>{{ notification.title }}</h4>
 
-          <small>
-            {{ notification.lesson }} · {{ notification.topic }}
-          </small>
+            <p>{{ notification.message }}</p>
+
+            <small>
+              {{ notification.lesson }} · {{ notification.topic }}
+            </small>
+          </div>
+
+          <div
+            class="notification-card"
+            *ngIf="notifications.length === 0"
+          >
+            <h4>Bildirim yok</h4>
+            <p>Şu anda yeni bir bildirimin bulunmuyor.</p>
+          </div>
+
         </div>
 
       </div>
 
+      <button
+        class="teacher-button"
+        (click)="goToTeacherDashboard()"
+      >
+        Öğretmen Paneline Geç
+      </button>
+
     </div>
 
-    <button
-      class="teacher-button"
-      (click)="goToTeacherDashboard()"
-    >
-      Öğretmen Paneline Geç
-    </button>
-
-  </div>
-
-</header>
+  </header>
 
   <div class="student-body">
 
@@ -96,7 +104,10 @@
             Cümlede Anlam
           </button>
 
-          <button class="active-lesson" (click)="goToLesson()">
+          <button
+            class="active-lesson"
+            (click)="goToLesson()"
+          >
             Paragrafta Anlam
           </button>
 
@@ -122,12 +133,81 @@
         </p>
       </section>
 
-      <section *ngIf="activeSection === 'dashboard'">
-        <h2>Öğrenci Dashboard</h2>
+      <section
+        class="student-dashboard-section"
+        *ngIf="activeSection === 'dashboard' && studentPanelData"
+      >
 
-        <p>
-          Son quiz sonucu, ilerleme durumu ve kişiselleştirme bilgileri burada gösterilecek.
-        </p>
+        <div class="dashboard-intro-card">
+          <span>Öğrenci Dashboard</span>
+
+          <h2>Öğrenme sürecin burada özetlenir.</h2>
+
+          <p>
+            {{ studentPanelData.studentMessage }}
+          </p>
+        </div>
+
+        <div class="student-dashboard-grid">
+
+          <div class="dashboard-card">
+            <h3>Aktif Ders</h3>
+            <p>{{ studentPanelData.learningSummary.activeLesson }}</p>
+            <span>{{ studentPanelData.learningSummary.activeTopic }}</span>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Son Quiz Sonucu</h3>
+            <p>{{ studentPanelData.learningSummary.lastQuizScore }}</p>
+            <span>Quiz sonrası güncellendi</span>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>İlerleme</h3>
+            <p>%{{ studentPanelData.learningSummary.progressPercentage }}</p>
+            <span>Konu anlatımı devam ediyor</span>
+          </div>
+
+        </div>
+
+        <section class="ai-support-plan-card">
+
+          <div>
+            <span>{{ studentPanelData.supportPlan.title }}</span>
+            <h2>{{ studentPanelData.supportPlan.description }}</h2>
+          </div>
+
+          <div class="plan-steps">
+
+            <div
+              class="plan-step"
+              *ngFor="let step of studentPanelData.supportPlan.steps; let i = index"
+            >
+              <strong>{{ i + 1 }}</strong>
+              <p>{{ step }}</p>
+            </div>
+
+          </div>
+
+          <div class="next-quiz-card">
+            <h3>Sonraki Quiz Zorluğu</h3>
+            <p>{{ studentPanelData.supportPlan.nextQuizDifficulty }}</p>
+          </div>
+
+        </section>
+
+        <section class="dashboard-actions-card">
+          <h3>{{ studentPanelData.todayRecommendation.title }}</h3>
+
+          <p>
+            {{ studentPanelData.todayRecommendation.message }}
+          </p>
+
+          <button (click)="goToLesson()">
+            {{ studentPanelData.todayRecommendation.actionLabel }}
+          </button>
+        </section>
+
       </section>
 
     </main>

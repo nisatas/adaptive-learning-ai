@@ -55,7 +55,7 @@ export class StudentExperience implements OnInit {
   goToDashboard(): void {
     this.router.navigate(['/teacher-dashboard']);
   }
-  goToStudentPanel(): void {
+ goToStudentPanel(): void {
   this.router.navigate(['/student-panel', 'stu-1']);
 }
 
