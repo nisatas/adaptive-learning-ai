@@ -347,6 +347,10 @@ export function getStudentDashboard(
     todayRecommendation: buildTodayRecommendation(buildInput, learningSummary),
     uiSettings: live?.uiSettings ?? DEFAULT_UI_SETTINGS,
     notifications,
+    learningMode: live?.learningMode,
+    learningModeLabel: live?.learningModeLabel,
+    supportProfile: live?.supportProfile,
+    recommendation: live?.recommendation,
   };
 
   return finalizeStudentDashboard(base, hasQuizResult);

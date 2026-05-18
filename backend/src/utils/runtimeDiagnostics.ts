@@ -1,4 +1,10 @@
-import { env } from '../config/env';
+import {
+  env,
+  getPuqAiVariableStatus,
+  isDemoModeEnabled,
+  isMeetWorkflowConfigured,
+  isPuqAiConfigured,
+} from '../config/env';
 import { AiDiagnosticsResponse } from '../types';
 
 export const SSL_ERROR_SAFE_MESSAGE =
@@ -13,7 +19,7 @@ function buildRecommendation(): string {
 
   if (tlsBypass) {
     parts.push(
-      'NODE_TLS_REJECT_UNAUTHORIZED devre dışı (yalnızca lokal geliştirme). Production ortamında kullanmayın.'
+      'NODE_TLS_REJECT_UNAUTHORIZED devre dışı (yalnızca lokal geliştirme). Production ortamında kullanmayın.',
     );
   } else {
     parts.push(SSL_ERROR_SAFE_MESSAGE);
@@ -21,12 +27,12 @@ function buildRecommendation(): string {
 
   if (!process.env.NODE_EXTRA_CA_CERTS) {
     parts.push(
-      'Kurumsal ağ/proxy kullanıyorsanız NODE_EXTRA_CA_CERTS ile güvenilir CA sertifikası tanımlayın.'
+      'Kurumsal ağ/proxy kullanıyorsanız NODE_EXTRA_CA_CERTS ile güvenilir CA sertifikası tanımlayın.',
     );
   }
 
   parts.push(
-    'GET /api/ai/diagnostics ile Node.js ve TLS yapılandırmasını kontrol edin.'
+    'GET /api/health/integrations ile entegrasyon durumunu kontrol edin.',
   );
 
   return parts.join(' ');
@@ -58,15 +64,60 @@ export function buildAiDiagnosticsResponse(): AiDiagnosticsResponse {
   };
 }
 
+export function buildIntegrationsHealth() {
+  const puqStatus = getPuqAiVariableStatus();
+  return {
+    status: 'ok',
+    demoMode: isDemoModeEnabled(),
+    puqai: {
+      configured: isPuqAiConfigured(),
+      chat: puqStatus,
+      meetWorkflowUrlConfigured: isMeetWorkflowConfigured(),
+      supportPlanWorkflowUrlConfigured: Boolean(
+        env.puqAi.supportPlanWorkflowUrl,
+      ),
+      weeklyReportWorkflowUrlConfigured: Boolean(
+        env.puqAi.weeklyReportWorkflowUrl,
+      ),
+    },
+  };
+}
+
 export function logStartupDiagnostics(): void {
-  console.log('[NeuroAdapt] Node.js version:', process.version);
-  console.log('[NeuroAdapt] OpenSSL version:', process.versions.openssl ?? 'unknown');
-  console.log('[NeuroAdapt] Platform:', process.platform, process.arch);
-  console.log('[NeuroAdapt] Puq.ai baseUrl configured:', Boolean(env.puqAi.baseUrl));
-  console.log('[NeuroAdapt] Puq.ai model configured:', Boolean(env.puqAi.model));
+  console.log('[Config] NODE_ENV:', env.nodeEnv);
+  console.log('[Config] Port:', env.port);
+  console.log('[Config] Demo mode:', isDemoModeEnabled() ? 'enabled' : 'disabled');
   console.log(
-    '[NeuroAdapt] Puq.ai chat endpoint configured:',
-    Boolean(env.puqAi.chatEndpoint)
+    '[Config] Puq.ai API key:',
+    env.puqAi.apiKey ? 'configured' : 'missing',
   );
-  console.log('[NeuroAdapt] Puq.ai API key configured:', Boolean(env.puqAi.apiKey));
+  console.log(
+    '[Config] Puq.ai base URL:',
+    env.puqAi.baseUrl ? 'configured' : 'missing',
+  );
+  console.log(
+    '[Config] Puq.ai model:',
+    env.puqAi.model ? 'configured' : 'missing',
+  );
+  console.log(
+    '[Config] Puq.ai chat endpoint:',
+    env.puqAi.chatEndpoint ? 'configured' : 'missing',
+  );
+  console.log(
+    '[Config] Puq.ai meet workflow URL:',
+    env.puqAi.meetWorkflowUrl ? 'configured' : 'missing',
+  );
+  console.log(
+    '[Config] Puq.ai support plan workflow URL:',
+    env.puqAi.supportPlanWorkflowUrl ? 'configured' : 'missing',
+  );
+  console.log(
+    '[Config] Puq.ai weekly report workflow URL:',
+    env.puqAi.weeklyReportWorkflowUrl ? 'configured' : 'missing',
+  );
+  console.log('[NeuroAdapt] Node.js version:', process.version);
+  console.log(
+    '[NeuroAdapt] OpenSSL version:',
+    process.versions.openssl ?? 'unknown',
+  );
 }

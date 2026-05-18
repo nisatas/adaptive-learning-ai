@@ -4,7 +4,7 @@ import { WorkflowTriggerResponse } from '../types';
 
 const DEMO_SUCCESS_RESPONSE: WorkflowTriggerResponse = {
   success: true,
-  message: 'Meet planlama isteği oluşturuldu.',
+  message: 'Görüşme planı oluşturuldu.',
   notificationCreated: true,
 };
 

@@ -24,6 +24,16 @@ export interface FrontendHints {
   settingsStatus: string;
 }
 
+export interface StudentNeedingSupport {
+  studentId: string;
+  studentName: string;
+  lesson: string;
+  topic: string;
+  reason: string;
+  suggestedAction: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
 export interface DashboardResponse {
   className: string;
   lesson: string;
@@ -41,6 +51,7 @@ export interface DashboardResponse {
   supportDistribution: SupportDistributionItem[];
   puqAiAgentFeed: PuqAiAgentFeedItem[];
   frontendHints: FrontendHints;
+  studentsNeedingSupport?: StudentNeedingSupport[];
   students: DashboardStudent[];
   weeklyReport: WeeklyReport;
 }

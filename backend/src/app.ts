@@ -13,6 +13,7 @@ export function createApp(): Application {
   const app = express();
 
   app.use(corsMiddleware);
+  app.options(/.*/, corsMiddleware);
   app.use(express.json());
 
   app.use('/api/health', healthRoutes);

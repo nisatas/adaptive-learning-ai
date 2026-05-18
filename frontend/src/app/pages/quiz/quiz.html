@@ -1,55 +1,267 @@
-<div class="quiz-page"
-[class.large-text]="uiSettings.largerText"
-  [class.focus-view]="uiSettings.reduceDistractions"
-  [class.progress-focus]="uiSettings.showProgressFocus">
-
-  <header class="quiz-header">
-    <div>
-      <h1>Adaptive Learning AI</h1>
-      <p *ngIf="quizData">{{ quizData.lesson }} · {{ quizData.topic }}</p>
+<div class="quiz-page" [ngClass]="getPageClasses()">
+  <header class="quiz-topbar">
+    <div class="quiz-topbar-left">
+      <p class="quiz-breadcrumb">Dersler / Türkçe / Paragrafta Anlam / Quiz</p>
+      <button type="button" class="quiz-back-button" (click)="goBackToTopic()">
+        ← Konuya Dön
+      </button>
     </div>
+    <button type="button" class="quiz-panel-button" (click)="goToStudentPanel()">
+      Öğrenci Paneli
+    </button>
   </header>
 
-  <main class="quiz-content">
+  <main class="quiz-main" *ngIf="!isLoading">
+    <section class="quiz-hero-card">
+      <div class="quiz-hero-text">
+        <span class="eyebrow">{{ quizData.lesson }} · {{ quizData.topic }}</span>
+        <h1 class="type-page-title">Paragrafta Anlam Quiz</h1>
+        <p>
+          Bu mini quiz ile ana fikir, yardımcı fikir ve paragrafın konusunu bulma
+          becerilerini pekiştirebilirsin.
+        </p>
+      </div>
+      <img
+        class="quiz-hero-mascot"
+        src="/assets/ogrencisayfasi/kedi.png"
+        alt=""
+        aria-hidden="true"
+      />
+    </section>
 
-    <section class="quiz-card" *ngIf="!isLoading && currentQuestion">
+    <div class="demo-warning-banner" *ngIf="isDemoMode" role="status">
+      <span class="demo-warning-icon" aria-hidden="true">!</span>
+      <span>Canlı quiz verisi alınamadı; geçici olarak yerel sorular gösteriliyor.</span>
+    </div>
 
-      <div class="quiz-progress">
-        <span>Soru {{ currentQuestionIndex + 1 }} / {{ questions.length }}</span>
-        <span>{{ currentQuestion.topic }}</span>
+    <article class="quiz-mode-card" *ngIf="!isFocusProfile()">
+      <div class="quiz-mode-header">
+        <img src="/assets/ogrencisayfasi/rakun.png" alt="" aria-hidden="true" />
+        <div>
+          <span class="card-label">Aktif Öğrenme Modu</span>
+          <h3>{{ getAdaptiveModeName() }}</h3>
+          <p>{{ getAdaptiveModeDescription() }}</p>
+          <p class="quiz-mode-note">
+            Bu mod, içeriklerin öğrenme sürecindeki ihtiyaçlarına göre nasıl sunulacağını
+            belirler. Amaç, öğrenme deneyimini daha kişisel ve anlaşılır hale getirmektir.
+          </p>
+        </div>
+      </div>
+      <div class="quiz-mode-pills">
+        <span
+          class="mode-pill"
+          [class.mode-pill--active]="getAdaptiveModeName() === 'Standart Öğrenme Modu'"
+        >Standart Öğrenme Modu</span>
+        <span
+          class="mode-pill"
+          [class.mode-pill--active]="getAdaptiveModeName() === 'Kişiselleştirilmiş Öğrenme Modu'"
+        >Kişiselleştirilmiş Öğrenme Modu</span>
+      </div>
+    </article>
+
+    <ng-container *ngIf="!quizCompleted">
+      <section class="quiz-progress-card">
+        <div class="quiz-progress-top">
+          <span class="progress-pill progress-pill--primary">
+            Soru {{ currentQuestionIndex + 1 }} / {{ questions.length }}
+          </span>
+          <span class="progress-pill progress-pill--score">Puan: {{ score }}</span>
+          <span class="progress-pill progress-pill--correct" *ngIf="!isFocusProfile()">
+            Doğru: {{ correctCount }}
+          </span>
+          <span class="progress-pill" *ngIf="isFocusProfile()">
+            Süre: {{ formattedElapsedTime }}
+          </span>
+          <span class="progress-pill" *ngIf="!isFocusProfile()">Tamamlanan: {{ answeredCount }}</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+          [attr.aria-valuenow]="progressPercent">
+          <div class="progress-fill" [style.width.%]="progressPercent"></div>
+        </div>
+      </section>
+
+      <div class="quiz-content-grid">
+        <section class="quiz-question-card" *ngIf="currentQuestion">
+          <span class="reading-mode-badge" *ngIf="isReadingProfile()">
+            Kişiselleştirilmiş Öğrenme Modu · Okuma kolaylığı odaklı görünüm
+          </span>
+          <span class="topic-badge">{{ currentQuestion.topic }}</span>
+
+          <p class="supported-tip focus-tip" *ngIf="isFocusProfile()">
+            {{ getFocusTip() }}
+          </p>
+          <p class="supported-tip" *ngIf="isPersonalizedLearningMode() && !isFocusProfile()">
+            {{ uiSettings.stepByStepMode ? getStepHint() : 'Önce paragrafın konusunu bul, sonra ana fikri seçeneklerle karşılaştır.' }}
+          </p>
+
+          <div class="paragraph-box readable-block">
+            <p [innerHTML]="currentQuestion.paragraph | highlightKeywords: useKeywordHighlight()"></p>
+          </div>
+
+          <h2
+            class="question-title readable-block"
+            [innerHTML]="currentQuestion.questionText | highlightKeywords: useKeywordHighlight()"
+          ></h2>
+
+          <div class="hint-box" *ngIf="isPersonalizedLearningMode() || uiSettings.showHints">
+            <strong>İpucu:</strong>
+            <span [innerHTML]="currentQuestion.hint | highlightKeywords: useKeywordHighlight()"></span>
+          </div>
+
+          <div class="success-celebration" *ngIf="successCelebration" aria-live="polite">
+            <span class="success-celebration-icon" aria-hidden="true">✓</span>
+            <strong>{{ successCelebration }}</strong>
+          </div>
+
+          <div
+            class="options-grid"
+            [class.options-grid--color]="useColorCodedOptions()"
+            [class.options-grid--focus]="isFocusProfile()"
+          >
+            <button
+              type="button"
+              class="option-card"
+              *ngFor="let option of currentQuestion.options"
+              [ngClass]="getOptionClass(option.id)"
+              [disabled]="isAnswered"
+              (click)="selectOption(option.id)"
+            >
+              <span class="option-color-tag" *ngIf="useColorCodedOptions()">{{
+                getReadingOptionLabel(option.id)
+              }}</span>
+              <span class="option-label" *ngIf="!useColorCodedOptions()">{{
+                option.id | uppercase
+              }}</span>
+              <span class="option-text">{{ option.text }}</span>
+            </button>
+          </div>
+
+          <div class="feedback-box" *ngIf="showFeedback" [class.feedback-box--correct]="lastAnswerCorrect"
+            [class.feedback-box--incorrect]="!lastAnswerCorrect">
+            <strong>{{ lastAnswerCorrect ? getSuccessMessage() : 'Henüz değil' }}</strong>
+            <p>{{ currentQuestion.explanation }}</p>
+            <p class="correct-answer" *ngIf="!lastAnswerCorrect">
+              Doğru cevap: {{ getCorrectAnswerLabel() }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="primary-button next-button"
+            [disabled]="!isAnswered"
+            (click)="nextQuestion()"
+          >
+            {{
+              currentQuestionIndex === questions.length - 1
+                ? 'Quiz’i Bitir'
+                : 'Sonraki Soru'
+            }}
+          </button>
+        </section>
+
+        <aside class="quiz-puq-card" *ngIf="!uiSettings.reduceDistractions && !isFocusProfile()">
+          <span class="eyebrow">Puq.ai Öğrenme Önerisi</span>
+          <h3>Çözüm stratejisi</h3>
+          <p
+            class="readable-block"
+            [innerHTML]="puqRecommendation | highlightKeywords: useKeywordHighlight()"
+          ></p>
+        </aside>
+      </div>
+    </ng-container>
+
+    <section class="quiz-complete-card" *ngIf="quizCompleted">
+      <img
+        class="complete-mascot"
+        src="/assets/ogrencisayfasi/tavsan.png"
+        alt=""
+        aria-hidden="true"
+      />
+      <h2>Quiz Tamamlandı</h2>
+      <p class="complete-message">{{ getCompletionMessage() }}</p>
+
+      <div class="mode-update-banner" *ngIf="modeUpdated && isPersonalizedLearningMode()">
+        <strong>Öğrenme modun güncellendi</strong>
+        <p>Kişiselleştirilmiş Öğrenme Modu aktif</p>
+        <p class="mode-update-note">{{ submitRecommendation }}</p>
       </div>
 
-      <h2>{{ currentQuestion.questionText }}</h2
-        >
-        <div class="hint-box" *ngIf="uiSettings.showHints">
-  <strong>İpucu:</strong>
-  Soruyu dikkatlice oku ve anahtar kelimelere odaklan.
-</div>
+      <article class="quiz-puq-analysis-card">
+        <span class="eyebrow">Quiz Sonrası Öğrenme Önerisi</span>
+        <h3>Öğrenme deneyimin güncellendi</h3>
+        <p class="quiz-puq-intro">
+          Cevaplarına göre öğrenme deneyimin kişiselleştirildi. İçerikler artık daha anlaşılır ve adım adım sunulacak.
+        </p>
+        <ul class="quiz-puq-metrics">
+          <li><strong>Başarı yüzdesi:</strong> %{{ successPercent }}</li>
+          <li>
+            <strong>En çok zorlanılan soru türü:</strong>
+            {{ getHardestQuestionType() }}
+          </li>
+          <li>
+            <strong>Güncellenen öğrenme modu:</strong>
+            {{ getAdaptiveModeName() }}
+          </li>
+          <li>
+            <strong>Kısa öneri:</strong>
+            {{ getQuizAnalysisRecommendation() }}
+          </li>
+        </ul>
+        <span class="ai-source-badge">Puq.ai ile oluşturuldu</span>
+      </article>
 
-      <div class="options-list">
-        <button
-          *ngFor="let option of currentQuestion.options"
-          [class.selected]="selectedOptionId === option.id"
-          (click)="selectOption(option.id)"
-        >
-          {{ option.text }}
+      <div class="complete-stats">
+        <article class="stat-card">
+          <span>Doğru sayısı</span>
+          <strong>{{ correctCount }} / {{ questions.length }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>Başarı yüzdesi</span>
+          <strong>%{{ successPercent }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>Toplam puan</span>
+          <strong>{{ score }}</strong>
+        </article>
+      </div>
+
+      <div class="complete-actions">
+        <button type="button" class="primary-button" (click)="goBackToTopic()">
+          Konuya Dön
+        </button>
+        <button type="button" class="secondary-button" (click)="retryQuiz()">
+          Quiz’i Tekrar Çöz
         </button>
       </div>
-
-      <button
-        class="next-button"
-        (click)="nextQuestion()"
-      >
-        {{ currentQuestionIndex === questions.length - 1 ? 'Quiz’i Bitir' : 'Devam Et' }}
-      </button>
-
     </section>
-
-    <section class="quiz-card" *ngIf="isLoading">
-      <h2>Quiz hazırlanıyor...</h2>
-      <p>Lütfen bekle.</p>
-    </section>
-
   </main>
 
+  <section class="quiz-loading" *ngIf="isLoading">
+    <span class="loading-spinner" aria-hidden="true"></span>
+    <p>Quiz hazırlanıyor…</p>
+  </section>
+
+  <div
+    class="break-modal-backdrop"
+    *ngIf="showBreakPrompt && !breakActive"
+    role="presentation"
+  ></div>
+
+  <div class="break-prompt-card" *ngIf="showBreakPrompt && !breakActive" role="dialog" aria-modal="true">
+    <h3>Kısa bir mola zamanı</h3>
+    <p>2 dakika dinlenip hazırsan devam edebilirsin.</p>
+    <div class="break-prompt-actions">
+      <button type="button" class="primary-button" (click)="startBreak()">Molayı Başlat</button>
+      <button type="button" class="secondary-button" (click)="dismissBreakPrompt()">Devam Et</button>
+    </div>
+  </div>
+
+  <div class="break-modal-backdrop" *ngIf="breakActive" role="presentation"></div>
+
+  <div class="break-active-card" *ngIf="breakActive" role="dialog" aria-modal="true">
+    <h3>Mola süresi</h3>
+    <p class="break-timer">{{ formattedBreakRemaining }}</p>
+    <p>Hazır olduğunda quiz’e devam edebilirsin.</p>
+    <button type="button" class="primary-button" (click)="endBreak()">Devam Et</button>
+  </div>
 </div>

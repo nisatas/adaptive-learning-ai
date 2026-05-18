@@ -17,6 +17,7 @@ const db_routes_1 = __importDefault(require("./routes/db.routes"));
 function createApp() {
     const app = (0, express_1.default)();
     app.use(cors_1.corsMiddleware);
+    app.options(/.*/, cors_1.corsMiddleware);
     app.use(express_1.default.json());
     app.use('/api/health', health_routes_1.default);
     app.use('/api/db', db_routes_1.default);

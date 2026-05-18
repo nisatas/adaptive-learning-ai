@@ -199,7 +199,7 @@ export function parseTeacherDashboardResponse(
                 : (fallback.workflowSuggestions[index]?.type ?? 'weekly_report'),
             title: asNonEmptyString(
               item.title,
-              fallback.workflowSuggestions[index]?.title ?? 'Workflow'
+              fallback.workflowSuggestions[index]?.title ?? 'Öneri'
             ),
             reason: asNonEmptyString(
               item.reason,
@@ -245,6 +245,14 @@ export function parseMeetWorkflowResponse(
       parsed.suggestedDurationMinutes > 0
         ? parsed.suggestedDurationMinutes
         : fallback.suggestedDurationMinutes,
+    recommendedDateLabel: asNonEmptyString(
+      parsed.recommendedDateLabel,
+      fallback.recommendedDateLabel,
+    ),
+    recommendedTime: asNonEmptyString(
+      parsed.recommendedTime,
+      fallback.recommendedTime,
+    ),
     suggestedAgenda: asStringArray(
       parsed.suggestedAgenda,
       fallback.suggestedAgenda

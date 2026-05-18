@@ -6,6 +6,9 @@ export interface StudentNotification {
   lesson: string;
   topic: string;
   duration?: number;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  dateDisplayLabel?: string;
   status: 'read' | 'unread';
 }
 
@@ -30,6 +33,8 @@ export interface TodayRecommendation {
   targetRoute: string;
 }
 
+import { LearningMode, SupportProfile } from './learning-mode';
+
 export interface StudentUiSettings {
   largerText: boolean;
   showHints: boolean;
@@ -37,6 +42,9 @@ export interface StudentUiSettings {
   reduceDistractions: boolean;
   showProgressFocus: boolean;
   showChallengeQuestions: boolean;
+  simplifiedLayout?: boolean;
+  increasedLineHeight?: boolean;
+  highlightKeywords?: boolean;
 }
 
 export interface StudentPanelResponse {
@@ -51,4 +59,8 @@ export interface StudentPanelResponse {
   todayRecommendation: TodayRecommendation;
   uiSettings: StudentUiSettings;
   notifications: StudentNotification[];
+  learningMode?: LearningMode;
+  learningModeLabel?: string;
+  supportProfile?: SupportProfile;
+  recommendation?: string;
 }

@@ -1,4 +1,5 @@
-import { env, isMeetWorkflowConfigured } from '../config/env';
+import { env, isDemoModeEnabled, isMeetWorkflowConfigured } from '../config/env';
+import { buildPuqAiHeaders } from '../utils/puqAiClient';
 import { addStudentNotification } from '../data/inMemoryStore';
 import { mockStudentProfiles } from '../data/mockData';
 import {
@@ -12,7 +13,7 @@ const SUPPORTED_WORKFLOW_TYPE = 'student_meet_request';
 
 const SUCCESS_RESPONSE: WorkflowTriggerResponse = {
   success: true,
-  message: 'Meet planlama isteği oluşturuldu.',
+  message: 'Görüşme planı oluşturuldu.',
   notificationCreated: true,
 };
 
@@ -32,7 +33,42 @@ export interface NormalizedMeetWorkflowPayload {
   topic: string;
   reason: string;
   suggestedDuration: number;
+  selectedDate: string;
+  selectedTime: string;
   priority: WorkflowPriority;
+}
+
+function formatMeetingDateLabel(isoDate: string): string {
+  if (!isoDate) {
+    return 'Yarın';
+  }
+  const target = new Date(`${isoDate}T12:00:00`);
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const targetDay = new Date(target);
+  targetDay.setHours(12, 0, 0, 0);
+
+  if (targetDay.getTime() === today.getTime()) {
+    return 'Bugün';
+  }
+  if (targetDay.getTime() === tomorrow.getTime()) {
+    return 'Yarın';
+  }
+  return target.toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
+function defaultTomorrowIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function safeStr(value: unknown, fallback: string): string {
@@ -79,6 +115,8 @@ export function normalizeMeetWorkflowPayload(
       'Öğrenme sürecini desteklemek için kısa görüşme önerilir.'
     ),
     suggestedDuration: safeDuration(body.suggestedDuration),
+    selectedDate: safeStr(body.selectedDate, defaultTomorrowIso()),
+    selectedTime: safeStr(body.selectedTime, '10:00'),
     priority: safePriority(body.priority),
   };
 }
@@ -120,13 +158,19 @@ function buildMeetNotification(
     ? payload.teacherName
     : `${payload.teacherName} Öğretmen`;
 
+  const dateLabel = formatMeetingDateLabel(payload.selectedDate);
+  const time = payload.selectedTime;
+
   return {
     type: 'meet',
-    title: 'Destek görüşmesi planlandı',
-    message: `${teacherLabel} senin için ${payload.topic} konusunda ${payload.suggestedDuration} dakikalık destek görüşmesi planladı.`,
+    title: 'Görüşme planı hazırlandı',
+    message: `${teacherLabel}, ${payload.topic} konusu için ${dateLabel} saat ${time} (${payload.suggestedDuration} dk) bir görüşme planı hazırladı.`,
     lesson: payload.lesson,
     topic: payload.topic,
     duration: payload.suggestedDuration,
+    scheduledDate: payload.selectedDate,
+    scheduledTime: time,
+    dateDisplayLabel: dateLabel,
     status: 'unread',
   };
 }
@@ -136,18 +180,19 @@ async function callPuqMeetWorkflow(
 ): Promise<{ ok: boolean; skipped: boolean; reason?: string }> {
   const url = env.puqAi.meetWorkflowUrl.trim();
 
+  if (isDemoModeEnabled()) {
+    console.log('[workflow] meet webhook skipped: DEMO_MODE=true');
+    return { ok: false, skipped: true, reason: 'demo_mode' };
+  }
+
   if (!isMeetWorkflowConfigured()) {
-    console.log('[workflow] PUQ_MEET_WORKFLOW_URL missing; workflowSkipped=true');
+    console.warn('[workflow] PUQ_MEET_WORKFLOW_URL missing; webhook skipped');
     return { ok: false, skipped: true, reason: 'missing_url' };
   }
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...buildPuqAiHeaders(),
   };
-
-  if (env.puqAi.apiKey) {
-    headers.Authorization = `Bearer ${env.puqAi.apiKey}`;
-  }
 
   const webhookBody: WorkflowTriggerRequest = {
     workflowType: SUPPORTED_WORKFLOW_TYPE,
@@ -159,6 +204,8 @@ async function callPuqMeetWorkflow(
     topic: payload.topic,
     reason: payload.reason,
     suggestedDuration: payload.suggestedDuration,
+    selectedDate: payload.selectedDate,
+    selectedTime: payload.selectedTime,
     priority: payload.priority,
   };
 
@@ -170,17 +217,18 @@ async function callPuqMeetWorkflow(
     });
 
     if (!response.ok) {
-      console.log(
-        `[workflow] meet webhook failed status=${response.status}; workflowSkipped=false`
+      const bodyText = await response.text().catch(() => '');
+      console.error(
+        `[workflow] meet webhook failed status=${response.status} body=${bodyText.slice(0, 200)}`,
       );
       return { ok: false, skipped: false, reason: `http_${response.status}` };
     }
 
-    console.log('[workflow] meet webhook accepted');
+    console.log('[workflow] Puq.ai meet workflow success');
     return { ok: true, skipped: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error';
-    console.log(`[workflow] meet webhook error; workflowSkipped=false reason=${message}`);
+    console.error(`[workflow] meet webhook network error: ${message}`);
     return { ok: false, skipped: false, reason: 'network_error' };
   }
 }
@@ -205,7 +253,7 @@ export async function triggerStudentMeetWorkflow(
     return { response: SUCCESS_RESPONSE, httpStatus: 200 };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown';
-    console.log(`[workflow] trigger error; demo fallback used reason=${message}`);
+    console.error(`[workflow] trigger error (notification still created): ${message}`);
     return { response: SUCCESS_RESPONSE, httpStatus: 200 };
   }
 }

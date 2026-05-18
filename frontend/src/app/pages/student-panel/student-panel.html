@@ -1,217 +1,603 @@
-<div class="student-panel-layout">
+<div class="student-panel-layout" [ngClass]="getShellClasses()">
 
+  <div class="panel-layout student-shell">
+    <aside class="app-sidebar student-sidebar" aria-label="Öğrenci menüsü">
+      <div class="sidebar-brand">
+        <img src="/assets/logo/logo1.png" alt="NeuroAdapt Logo" />
+        <div class="sidebar-brand-text">
+          <strong class="sidebar-brand-title">NeuroAdapt</strong>
+          <span class="sidebar-brand-subtitle">Öğrenci Paneli</span>
+        </div>
+      </div>
+
+      <div class="sidebar-profile-card">
+        <div class="sidebar-avatar">{{ getStudentInitials() }}</div>
+        <h3 class="sidebar-profile-name">
+          {{ studentPanelData?.studentName || 'Ayşe Yılmaz' }}
+        </h3>
+        <p class="sidebar-profile-role">Öğrenci</p>
+        <span class="sidebar-class-badge">6/A</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          [class.active]="activeSection === 'home'"
+          (click)="changeSection('home')"
+        >
+          Ana Sayfa
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          [class.active]="activeSection === 'dashboard'"
+          (click)="changeSection('dashboard')"
+        >
+          Dashboard
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav-item nav-item-with-chevron"
+          [class.active]="activeSection === 'lessons'"
+          [class.expanded]="lessonsOpen"
+          (click)="toggleLessons()"
+        >
+          Dersler
+        </button>
+
+        <div class="sidebar-subnav submenu" *ngIf="lessonsOpen">
+          <button
+            type="button"
+            class="sidebar-subnav-item submenu-title nav-item-with-chevron"
+            [class.active]="turkishOpen"
+            [class.expanded]="turkishOpen"
+            (click)="toggleTurkish(); $event.stopPropagation()"
+          >
+            Türkçe
+          </button>
+
+          <div class="submenu nested" *ngIf="turkishOpen">
+            <button type="button" class="sidebar-subnav-item" disabled>
+              Sözcükte Anlam
+            </button>
+            <button type="button" class="sidebar-subnav-item" disabled>
+              Cümlede Anlam
+            </button>
+            <button
+              type="button"
+              class="sidebar-subnav-item topic-link"
+              [class.active]="activeSection === 'lessons' && selectedTopic === 'paragrafta-anlam'"
+              (click)="openLessonTopic('paragrafta-anlam')"
+            >
+              Paragrafta Anlam
+            </button>
+            <button type="button" class="sidebar-subnav-item" disabled>
+              Yazım Kuralları
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-illustration">
+        <img
+          src="/assets/home/mascot-trio.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <p>Sana özel öğrenme yolculuğun burada başlar.</p>
+      </div>
+    </aside>
+
+    <div class="panel-main student-main-column">
   <header class="student-header">
-
-    <div class="header-left">
-      <h1>Adaptive Learning AI</h1>
-      <p>Öğrenci öğrenme paneli</p>
+    <div class="header-brand">
+      <h1>Öğrenme Paneli</h1>
+      <p *ngIf="studentPanelData">{{ studentPanelData.studentName }}</p>
     </div>
 
     <div class="header-right">
-
       <div class="notification-wrapper">
-
         <button
+          type="button"
           class="notification-button"
           (click)="toggleNotifications()"
+          aria-label="Bildirimleri aç"
         >
-          🔔 Bildirimler
+          <span class="notification-icon" aria-hidden="true">🔔</span>
+          Bildirimler
+          <span class="notification-count" *ngIf="notifications.length > 0">
+            {{ notifications.length }}
+          </span>
         </button>
 
-        <div
-          class="notification-dropdown"
-          *ngIf="notificationsOpen"
-        >
-
+        <div class="notification-dropdown" *ngIf="notificationsOpen">
           <div
             class="notification-card"
             *ngFor="let notification of notifications"
           >
             <h4>{{ notification.title }}</h4>
-
             <p>{{ notification.message }}</p>
-
-            <small>
-              {{ notification.lesson }} · {{ notification.topic }}
-            </small>
+            <p
+              class="notification-schedule"
+              *ngIf="getNotificationSchedule(notification)"
+            >
+              {{ getNotificationSchedule(notification) }}
+            </p>
+            <small>{{ notification.lesson }} · {{ notification.topic }}</small>
           </div>
 
-          <div
-            class="notification-card"
-            *ngIf="notifications.length === 0"
-          >
+          <div class="notification-card empty" *ngIf="notifications.length === 0">
             <h4>Bildirim yok</h4>
             <p>Şu anda yeni bir bildirimin bulunmuyor.</p>
           </div>
-
         </div>
-
       </div>
 
-      <button
-        class="teacher-button"
-        (click)="goToTeacherDashboard()"
-      >
+      <button type="button" class="teacher-button" (click)="goToTeacherDashboard()">
         Öğretmen Paneline Geç
       </button>
-
     </div>
-
   </header>
 
-  <div class="student-body">
-
-    <aside class="student-sidebar">
-
-      <button
-        [class.active]="activeSection === 'home'"
-        (click)="changeSection('home')"
-      >
-        Ana Sayfa
-      </button>
-
-      <button
-        [class.active]="activeSection === 'dashboard'"
-        (click)="changeSection('dashboard')"
-      >
-        Dashboard
-      </button>
-
-      <button
-        [class.active]="lessonsOpen"
-        (click)="toggleLessons()"
-      >
-        Dersler
-      </button>
-
-      <div class="submenu" *ngIf="lessonsOpen">
-
-        <button
-          class="submenu-title"
-          [class.active]="turkishOpen"
-          (click)="toggleTurkish()"
-        >
-          Türkçe
-        </button>
-
-        <div class="submenu nested" *ngIf="turkishOpen">
-
-          <button disabled>
-            Sözcükte Anlam
-          </button>
-
-          <button disabled>
-            Cümlede Anlam
-          </button>
-
-          <button
-            class="active-lesson"
-            (click)="goToLesson()"
-          >
-            Paragrafta Anlam
-          </button>
-
-          <button disabled>
-            Yazım Kuralları
-          </button>
-
+    <main class="student-content">
+      <section class="student-home-section" *ngIf="activeSection === 'home'">
+        <div class="home-hero-card">
+          <div class="home-hero-text">
+            <span class="eyebrow">Hoş geldin</span>
+            <h2>{{ studentPanelData?.studentName || 'Ayşe' }}</h2>
+            <p>
+              NeuroAdapt, cevap süreni, quiz performansını ve öğrenme ihtiyaçlarını
+              analiz ederek sana özel bir öğrenme deneyimi sunar.
+            </p>
+          </div>
+          <img
+            class="home-hero-mascot"
+            src="/assets/ogrencisayfasi/kedi.png"
+            alt="Öğrenci maskotu"
+          />
         </div>
 
-      </div>
+        <div class="home-info-grid">
+          <article class="home-info-card">
+            <img src="/assets/ogrencisayfasi/rakun.png" alt="" aria-hidden="true" />
+            <h3>Öğrenme Modu</h3>
+            <p>
+              Standart veya kişiselleştirilmiş öğrenme modu önerilir; içerik sunumu öğrenme
+              ihtiyacına göre kişiselleştirilir.
+            </p>
+          </article>
 
-    </aside>
+          <article class="home-info-card">
+            <img src="/assets/ogrencisayfasi/tavsan.png" alt="" aria-hidden="true" />
+            <h3>Bugünkü Hedef</h3>
+            <p>
+              {{
+                studentPanelData?.learningSummary?.activeTopic ||
+                  'Paragrafta Anlam'
+              }}
+              konusuna odaklanarak kısa quiz ile ilerlemeni tamamlayabilirsin.
+            </p>
+          </article>
 
-    <main class="student-content">
+          <article class="home-info-card home-info-card--ai">
+            <span class="home-card-icon" aria-hidden="true">✦</span>
+            <h3>AI Öğrenme Önerisi</h3>
+            <p>
+              Quiz sonrası kişisel çalışma planın ve sonraki adım önerilerin
+              otomatik hazırlanır.
+            </p>
+          </article>
 
-      <section *ngIf="activeSection === 'home'">
-        <h2>Hoş geldin {{ studentPanelData?.studentName || 'Ayşe' }}</h2>
+          <article class="home-info-card">
+            <span class="home-card-icon home-card-icon--progress" aria-hidden="true">%</span>
+            <h3>Ders İlerlemesi</h3>
+            <p>
+              Konu anlatımı ve quiz sonuçların birlikte takip edilir; ilerlemen
+              Dashboard’da görünür.
+            </p>
+          </article>
+        </div>
 
-        <p>
-          Adaptive Learning AI, öğrenme sürecini analiz ederek
-          sana özel bir öğrenme deneyimi sunmayı hedefleyen
-          AI destekli bir eğitim platformudur.
-        </p>
+        <section class="home-how-section">
+          <div class="home-how-header">
+            <span class="eyebrow">NeuroAdapt nasıl çalışır?</span>
+            <h3>Sana özel öğrenme deneyimi</h3>
+            <p>
+              Zorlandığın konularda daha sade, adım adım ve destekleyici içerikler
+              sunulur. Öğretmenler sınıfın genel durumunu takip ederek sana daha iyi
+              destek olur.
+            </p>
+          </div>
+
+          <div class="home-steps-row">
+            <article class="home-step-card">
+              <strong>1</strong>
+              <h4>Analiz et</h4>
+              <p>Quiz süresi, performans ve etkileşim sinyalleri güvenle değerlendirilir.</p>
+            </article>
+            <article class="home-step-card">
+              <strong>2</strong>
+              <h4>Uyarlama yap</h4>
+              <p>Arayüz modun ve içerik sunumun öğrenme ihtiyacına göre ayarlanır.</p>
+            </article>
+            <article class="home-step-card">
+              <strong>3</strong>
+              <h4>Öğrenmeyi destekle</h4>
+              <p>AI destekli öneriler ve öğretmen içgörüleriyle süreç takip edilir.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="sp-quick-access">
+          <article class="sp-quick-card" (click)="openLessonTopic('paragrafta-anlam')">
+            <span class="sp-quick-icon" aria-hidden="true">📖</span>
+            <h4>Paragrafta Anlam</h4>
+            <p>Konu anlatımı ve adım adım çalışma alanı</p>
+          </article>
+          <article class="sp-quick-card sp-quick-card--quiz" (click)="startTopicQuiz('paragrafta-anlam')">
+            <span class="sp-quick-icon" aria-hidden="true">✦</span>
+            <h4>Mini Quiz</h4>
+            <p>Paragrafta Anlam quiz’ine doğrudan başla</p>
+          </article>
+          <article class="sp-quick-card" (click)="changeSection('dashboard')">
+            <span class="sp-quick-icon" aria-hidden="true">%</span>
+            <h4>Dashboard</h4>
+            <p>İlerleme ve öğrenme planını görüntüle</p>
+          </article>
+        </section>
+
+        <section class="home-features-band">
+          <article class="home-feature-tile">
+            <h4>Öğrenme modları</h4>
+            <p>Standart ve kişiselleştirilmiş öğrenme modu; okunabilirlik ve adım adım sunum seçenekleri.</p>
+          </article>
+          <article class="home-feature-tile">
+            <h4>Bugünkü öğrenme yolculuğun</h4>
+            <p>Günlük hedefin, çalışma adımların ve quiz önerilerin tek yerde.</p>
+          </article>
+          <article class="home-feature-tile">
+            <h4>Kişiselleştirilmiş öğrenme ortamı</h4>
+            <p>Sadeleştirilmiş düzen, okuma kolaylığı ve adım adım öğrenme desteği.</p>
+          </article>
+        </section>
+      </section>
+
+      <section class="student-dashboard-section" *ngIf="activeSection === 'dashboard'">
+        <div class="sd-loading" *ngIf="!studentPanelData">
+          <span class="loading-spinner" aria-hidden="true"></span>
+          <p>Dashboard yükleniyor…</p>
+        </div>
+
+        <ng-container *ngIf="studentPanelData as panel">
+          <div class="demo-warning-banner" *ngIf="isDemoMode" role="status">
+            <span class="demo-warning-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>Bağlantı uyarısı:</strong>
+              Canlı öğrenci verisi alınamadı; geçici olarak yerel özet veriler gösteriliyor.
+            </div>
+            <button type="button" class="demo-retry-button" (click)="loadStudentPanel()">
+              Yeniden dene
+            </button>
+          </div>
+
+          <div class="sd-hero-card">
+            <div class="sd-hero-text">
+              <span class="eyebrow">Öğrenci Dashboard</span>
+              <h2 class="type-page-title">Merhaba, {{ panel.studentName }}</h2>
+              <p>
+                Bugünkü öğrenme durumunu, önerilen destek modunu ve quiz ilerlemeni
+                buradan takip edebilirsin.
+              </p>
+              <p class="sd-hero-sub">{{ panel.studentMessage }}</p>
+            </div>
+            <img
+              class="sd-hero-mascot"
+              src="/assets/ogrencisayfasi/kedi.png"
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
+
+          <article class="sd-adaptive-mode-card">
+            <div class="sd-adaptive-mode-header">
+              <img src="/assets/ogrencisayfasi/rakun.png" alt="" aria-hidden="true" />
+              <div>
+                <span class="card-label">Öğrenme Modu</span>
+                <h3>{{ getAdaptiveModeName() }}</h3>
+                <p>{{ getAdaptiveModeDescription() }}</p>
+              </div>
+            </div>
+            <div class="sd-mode-options">
+              <span
+                class="sd-mode-pill"
+                [class.sd-mode-pill--active]="getAdaptiveModeName() === 'Standart Öğrenme Modu'"
+              >Standart Öğrenme Modu</span>
+              <span
+                class="sd-mode-pill"
+                [class.sd-mode-pill--active]="getAdaptiveModeName() === 'Kişiselleştirilmiş Öğrenme Modu'"
+              >Kişiselleştirilmiş Öğrenme Modu</span>
+            </div>
+          </article>
+
+          <div class="sd-metrics-grid">
+            <article class="sd-metric-card">
+              <span class="card-label">Quiz Tamamlama</span>
+              <p class="sd-metric-value">%{{ panel.learningSummary.progressPercentage }}</p>
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="panel.learningSummary.progressPercentage"
+                ></div>
+              </div>
+            </article>
+            <article class="sd-metric-card">
+              <span class="card-label">Başarı Oranı</span>
+              <p class="sd-metric-value">
+                {{ panel.learningSummary.lastQuizScore }}<small> puan</small>
+              </p>
+            </article>
+            <article class="sd-metric-card">
+              <span class="card-label">Doğru / Yanlış</span>
+              <p class="sd-metric-value">
+                {{ getEstimatedCorrectCount() }} / {{ getEstimatedWrongCount() }}
+              </p>
+              <span class="card-meta">son quiz (10 soru)</span>
+            </article>
+            <article class="sd-metric-card">
+              <span class="card-label">Ort. Cevap Süresi</span>
+              <p class="sd-metric-value">27<small> sn</small></p>
+            </article>
+            <article class="sd-metric-card">
+              <span class="card-label">Devam Edilen Ders</span>
+              <p class="sd-metric-value sd-metric-value--text">{{ panel.learningSummary.activeLesson }}</p>
+              <span class="card-meta">{{ panel.learningSummary.activeTopic }}</span>
+            </article>
+            <article class="sd-metric-card">
+              <span class="card-label">Zorlanılan Konu</span>
+              <p class="sd-metric-value sd-metric-value--text">{{ panel.topic }}</p>
+              <span class="card-meta">{{ panel.supportPlan.nextQuizDifficulty }}</span>
+            </article>
+          </div>
+
+          <div class="sd-dashboard-row">
+            <section class="sd-plan-card">
+              <span class="plan-eyebrow">{{ panel.supportPlan.title }}</span>
+              <h3>Bugünkü öğrenme planın</h3>
+              <ol class="sd-plan-list">
+                <li>1. Kısa tekrar — {{ panel.supportPlan.steps[0] || '10 dk konu tekrarı' }}</li>
+                <li>2. Mini quiz — {{ panel.supportPlan.steps[2] || '5 soruluk mini quiz' }}</li>
+                <li>3. Zorlandığın konu için destek — {{ panel.learningSummary.activeTopic }}</li>
+                <li>4. AI önerisini uygula — {{ panel.todayRecommendation.message }}</li>
+              </ol>
+              <div class="plan-steps">
+                <div class="plan-step" *ngFor="let step of panel.supportPlan.steps; let i = index">
+                  <strong>{{ i + 1 }}</strong>
+                  <p>{{ step }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="sd-puq-card">
+              <span class="eyebrow">AI Destekli Öğrenme Önerisi</span>
+              <h3>Kişisel çalışma önerisi</h3>
+              <span class="ai-source-badge">Puq.ai ile oluşturuldu</span>
+              <p>{{ panel.studentMessage }}</p>
+              <ul>
+                <li>{{ panel.learningSummary.activeTopic }} konusunda kısa tekrar yap.</li>
+                <li>Bugün 10 dakikalık kısa tekrar ile başla.</li>
+                <li>{{ panel.supportPlan.nextQuizDifficulty }} ile devam et.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div class="sp-dashboard-quick">
+            <button type="button" class="sp-dash-action" (click)="openLessonTopic('paragrafta-anlam')">
+              Paragrafta Anlam’a Git
+            </button>
+            <button type="button" class="sp-dash-action sp-dash-action--primary" (click)="startTopicQuiz('paragrafta-anlam')">
+              Quiz’e Başla
+            </button>
+          </div>
+
+          <article class="sd-continue-card">
+            <div class="sd-continue-info">
+              <span class="card-label">Devam edilen ders ve quiz</span>
+              <h3>{{ panel.learningSummary.activeTopic }}</h3>
+              <p>{{ panel.todayRecommendation.message }}</p>
+              <div class="progress-track sd-continue-progress">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="panel.learningSummary.progressPercentage"
+                ></div>
+              </div>
+              <span class="card-meta">İlerleme: %{{ panel.learningSummary.progressPercentage }}</span>
+            </div>
+            <button
+              type="button"
+              class="primary-button"
+              (click)="openLessonTopic('paragrafta-anlam')"
+            >
+              {{ panel.todayRecommendation.actionLabel }}
+            </button>
+          </article>
+        </ng-container>
       </section>
 
       <section
-        class="student-dashboard-section"
-        *ngIf="activeSection === 'dashboard' && studentPanelData"
+        class="student-lessons-section"
+        *ngIf="activeSection === 'lessons' && selectedTopic === 'paragrafta-anlam'"
       >
-
-        <div class="dashboard-intro-card">
-          <span>Öğrenci Dashboard</span>
-
-          <h2>Öğrenme sürecin burada özetlenir.</h2>
-
-          <p>
-            {{ studentPanelData.studentMessage }}
-          </p>
+        <div class="lesson-hero-card">
+          <div class="lesson-hero-text">
+            <span class="eyebrow">Türkçe · Paragrafta Anlam</span>
+            <h2 class="type-page-title">Paragrafta Anlam</h2>
+            <p>
+              Bu bölümde ana fikir, yardımcı fikir ve paragrafın konusu gibi temel
+              becerileri adım adım çalışabilirsin.
+            </p>
+          </div>
+          <img
+            class="lesson-hero-mascot"
+            src="/assets/ogrencisayfasi/tavsan.png"
+            alt=""
+            aria-hidden="true"
+          />
         </div>
 
-        <div class="student-dashboard-grid">
-
-          <div class="dashboard-card">
-            <h3>Aktif Ders</h3>
-            <p>{{ studentPanelData.learningSummary.activeLesson }}</p>
-            <span>{{ studentPanelData.learningSummary.activeTopic }}</span>
-          </div>
-
-          <div class="dashboard-card">
-            <h3>Son Quiz Sonucu</h3>
-            <p>{{ studentPanelData.learningSummary.lastQuizScore }}</p>
-            <span>Quiz sonrası güncellendi</span>
-          </div>
-
-          <div class="dashboard-card">
-            <h3>İlerleme</h3>
-            <p>%{{ studentPanelData.learningSummary.progressPercentage }}</p>
-            <span>Konu anlatımı devam ediyor</span>
-          </div>
-
-        </div>
-
-        <section class="ai-support-plan-card">
-
-          <div>
-            <span>{{ studentPanelData.supportPlan.title }}</span>
-            <h2>{{ studentPanelData.supportPlan.description }}</h2>
-          </div>
-
-          <div class="plan-steps">
-
-            <div
-              class="plan-step"
-              *ngFor="let step of studentPanelData.supportPlan.steps; let i = index"
-            >
-              <strong>{{ i + 1 }}</strong>
-              <p>{{ step }}</p>
+        <article class="lesson-mode-card">
+          <div class="lesson-mode-header">
+            <img src="/assets/ogrencisayfasi/rakun.png" alt="" aria-hidden="true" />
+            <div>
+              <span class="card-label">Aktif Öğrenme Modu</span>
+              <h3>{{ getAdaptiveModeName() }}</h3>
+              <p>{{ getAdaptiveModeDescription() }}</p>
+              <p class="lesson-mode-note">
+                Bu mod, öğrenme sürecindeki ihtiyaçlarına göre içeriklerin nasıl
+                sunulacağını belirler. Yalnızca öğrenme deneyimini kişiselleştirmek
+                için kullanılır.
+              </p>
             </div>
-
           </div>
-
-          <div class="next-quiz-card">
-            <h3>Sonraki Quiz Zorluğu</h3>
-            <p>{{ studentPanelData.supportPlan.nextQuizDifficulty }}</p>
+          <div class="sd-mode-options">
+            <span
+              class="sd-mode-pill"
+              [class.sd-mode-pill--active]="getAdaptiveModeName() === 'Standart Öğrenme Modu'"
+            >Standart Öğrenme Modu</span>
+            <span
+              class="sd-mode-pill"
+              [class.sd-mode-pill--active]="getAdaptiveModeName() === 'Kişiselleştirilmiş Öğrenme Modu'"
+            >Kişiselleştirilmiş Öğrenme Modu</span>
           </div>
+        </article>
 
-        </section>
+        <div class="lesson-content-grid">
+          <article class="lesson-topic-card">
+            <h3>Konu içeriği</h3>
+            <div class="lesson-topic-block">
+              <h4 class="type-card-title" [innerHTML]="'Paragrafın konusu nedir?' | highlightKeywords: useKeywordHighlight()"></h4>
+              <p
+                class="readable-block"
+                [innerHTML]="'Paragrafın üzerinde durduğu ana düşünce veya olaydır. Genelde birkaç cümlede aynı fikir etrafında toplanır.' | highlightKeywords: useKeywordHighlight()"
+              ></p>
+            </div>
+            <div class="lesson-topic-block">
+              <h4 class="type-card-title" [innerHTML]="'Ana fikir nedir?' | highlightKeywords: useKeywordHighlight()"></h4>
+              <p
+                class="readable-block"
+                [innerHTML]="'Paragrafın tamamında anlatılmak istenen temel düşüncedir. Yazarın okura iletmek istediği asıl mesajdır.' | highlightKeywords: useKeywordHighlight()"
+              ></p>
+            </div>
+            <div class="lesson-topic-block">
+              <h4 class="type-card-title" [innerHTML]="'Yardımcı fikir nedir?' | highlightKeywords: useKeywordHighlight()"></h4>
+              <p
+                class="readable-block"
+                [innerHTML]="'Ana fikri destekleyen, açıklayan ve örnekleyen alt düşüncelerdir.' | highlightKeywords: useKeywordHighlight()"
+              ></p>
+            </div>
+            <div class="lesson-topic-block">
+              <h4 class="type-card-title" [innerHTML]="'Anahtar kelimeler nasıl bulunur?' | highlightKeywords: useKeywordHighlight()"></h4>
+              <p
+                class="readable-block"
+                [innerHTML]="'En çok tekrar eden, paragrafın konusunu taşıyan kelimelere odaklan. Başlık ve ilk cümle genelde ipucu verir.' | highlightKeywords: useKeywordHighlight()"
+              ></p>
+            </div>
+          </article>
 
-        <section class="dashboard-actions-card">
-          <h3>{{ studentPanelData.todayRecommendation.title }}</h3>
+          <article
+            class="lesson-steps-card"
+            [class.lesson-steps-card--supported]="isSupportedLearningMode()"
+          >
+            <span class="eyebrow">Adım adım öğrenme</span>
+            <h3>Çalışma adımların</h3>
+            <ol class="lesson-steps-list">
+              <li><strong>1)</strong> Paragrafı oku</li>
+              <li><strong>2)</strong> En çok tekrar eden kelimeleri bul</li>
+              <li><strong>3)</strong> Paragrafın ne anlattığını tek cümleyle söyle</li>
+              <li><strong>4)</strong> Ana fikri seçeneklerle karşılaştır</li>
+              <li><strong>5)</strong> Cevabını kontrol et</li>
+            </ol>
+          </article>
+        </div>
 
-          <p>
-            {{ studentPanelData.todayRecommendation.message }}
-          </p>
-
-          <button (click)="goToLesson()">
-            {{ studentPanelData.todayRecommendation.actionLabel }}
+        <section class="lesson-quiz-sample">
+          <span class="eyebrow">Mini quiz örneği</span>
+          <h3>Örnek soru</h3>
+          <div class="sample-paragraph-card readable-block">
+            <p [innerHTML]="'İnsanlar birlikte çalıştıklarında daha büyük başarılar elde edebilirler. Yardımlaşma ve dayanışma, toplumların gelişmesinde önemli bir rol oynar. Bu nedenle insanlar birbirlerine destek olmalıdır.' | highlightKeywords: useKeywordHighlight()"></p>
+          </div>
+          <p
+            class="sample-question readable-block"
+            [innerHTML]="'Bu paragrafın ana fikri aşağıdakilerden hangisidir?' | highlightKeywords: useKeywordHighlight()"
+          ></p>
+          <div class="sample-options">
+            <button type="button" class="sample-option">A) Bireysel çalışma her zaman daha etkilidir.</button>
+            <button type="button" class="sample-option sample-option--highlight">B) Birlikte hareket etmek başarıyı artırır.</button>
+            <button type="button" class="sample-option">C) Toplumlar yardımlaşmadan gelişemez.</button>
+            <button type="button" class="sample-option">D) İnsanlar yalnız çalışmayı tercih eder.</button>
+          </div>
+          <p class="sample-quiz-note">Bu örnek soru gösterim amaçlıdır. Quiz’e başlamak için aşağıdaki butonu kullan.</p>
+          <button
+            type="button"
+            class="primary-button lesson-quiz-cta"
+            (click)="startTopicQuiz('paragrafta-anlam')"
+          >
+            Quiz’e Başla
           </button>
         </section>
 
+        <div class="lesson-bottom-row">
+          <article class="lesson-puq-card">
+            <span class="eyebrow">AI Destekli Öğrenme Önerisi</span>
+            <h3>Konuya özel öneri</h3>
+            <span class="ai-source-badge">Puq.ai ile oluşturuldu</span>
+            <p class="lesson-puq-intro">
+              Konu ilerlemen ve quiz performansın dikkate alınarak kısa bir çalışma önerisi hazırlandı.
+            </p>
+            <ul class="lesson-puq-steps">
+              <li *ngFor="let step of puqStudentRecommendationSteps">{{ step }}</li>
+            </ul>
+          </article>
+
+          <article class="lesson-progress-card">
+            <h3>İlerleme durumun</h3>
+            <div class="lesson-progress-item">
+              <span>Konu ilerlemesi</span>
+              <strong>%{{ studentPanelData?.learningSummary?.progressPercentage ?? 35 }}</strong>
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="studentPanelData?.learningSummary?.progressPercentage ?? 35"
+                ></div>
+              </div>
+            </div>
+            <div class="lesson-progress-item">
+              <span>Mini quiz durumu</span>
+              <strong>Hazır — başlayabilirsin</strong>
+            </div>
+            <div class="lesson-progress-item">
+              <span>Önerilen çalışma süresi</span>
+              <strong>15 dakika</strong>
+            </div>
+            <div class="lesson-progress-steps">
+              <span class="progress-step-pill progress-step-pill--done">Konu okundu</span>
+              <span class="progress-step-pill progress-step-pill--done">Adımlar görüldü</span>
+              <span class="progress-step-pill">Mini quiz</span>
+              <span class="progress-step-pill">AI önerisi uygulandı</span>
+            </div>
+          </article>
+        </div>
       </section>
 
+      <section
+        class="student-lessons-empty"
+        *ngIf="activeSection === 'lessons' && !selectedTopic"
+      >
+        <p>Dersler menüsünden bir konu seçerek çalışmaya başlayabilirsin.</p>
+      </section>
     </main>
-
+    </div>
   </div>
-
 </div>

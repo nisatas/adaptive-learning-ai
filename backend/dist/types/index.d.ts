@@ -43,9 +43,25 @@ export interface QuizAnswerSubmission {
     timeSpentSeconds?: number;
     skipped?: boolean;
 }
+export interface QuizAnswerDetailMeta {
+    questionId: string;
+    topic: string;
+    isCorrect: boolean;
+    timeSpentSeconds: number;
+}
+export interface QuizSubmissionMeta {
+    topicId: string;
+    totalQuestions: number;
+    correctCount: number;
+    wrongCount: number;
+    score: number;
+    answerDetails: QuizAnswerDetailMeta[];
+}
 export interface QuizSubmissionRequest {
     studentId: string;
     answers: QuizAnswerSubmission[];
+    /** Paragraf / konu bazlı mini quiz gönderiminde kullanılır */
+    quizMeta?: QuizSubmissionMeta;
 }
 /** Internal — includes question ids for adaptation engine */
 export interface BehaviorSignals {
@@ -79,12 +95,21 @@ export interface UiSettings {
     reduceDistractions: boolean;
     showProgressFocus: boolean;
     showChallengeQuestions: boolean;
+    simplifiedLayout?: boolean;
+    increasedLineHeight?: boolean;
+    highlightKeywords?: boolean;
 }
+export type LearningMode = 'STANDARD' | 'PERSONALIZED';
+export type SupportProfile = 'focus_support' | 'reading_support' | 'balanced_support' | null;
 export type InternalLearningProfile = 'FOCUS_SUPPORT' | 'STEP_BY_STEP' | 'READING_FRIENDLY' | 'CHALLENGE_MODE' | 'BALANCED';
 export interface AdaptationResult {
     internalProfile: InternalLearningProfile;
     uiSettings: UiSettings;
     studentMessage: string;
+    learningMode: LearningMode;
+    learningModeLabel: string;
+    supportProfile: SupportProfile;
+    recommendation: string;
 }
 export interface QuizResultResponse {
     studentId: string;
@@ -102,6 +127,11 @@ export interface QuizResultResponse {
     studentMessage: string;
     uiSettings: UiSettings;
     behaviorSignals: BehaviorSignalsPublic;
+    learningMode: LearningMode;
+    learningModeLabel: string;
+    supportProfile: SupportProfile;
+    recommendation: string;
+    topicId?: string;
 }
 export interface StoredQuizResult extends QuizResultResponse {
     behaviorSignalsInternal: BehaviorSignals;
@@ -363,6 +393,24 @@ export interface StudentNotification {
     duration: number;
     status: StudentNotificationStatus;
 }
+export interface StudentDashboardLearningSummary {
+    activeLesson: string;
+    activeTopic: string;
+    lastQuizScore: number;
+    progressPercentage: number;
+}
+export interface StudentDashboardSupportPlan {
+    title: string;
+    description: string;
+    steps: string[];
+    nextQuizDifficulty: string;
+}
+export interface StudentDashboardTodayRecommendation {
+    title: string;
+    message: string;
+    actionLabel: string;
+    targetRoute: string;
+}
 export interface StudentDashboardResponse {
     studentId: string;
     studentName: string;
@@ -370,7 +418,14 @@ export interface StudentDashboardResponse {
     topic: string;
     score: number;
     studentMessage: string;
+    learningSummary: StudentDashboardLearningSummary;
+    supportPlan: StudentDashboardSupportPlan;
+    todayRecommendation: StudentDashboardTodayRecommendation;
     uiSettings: UiSettings;
     notifications: StudentNotification[];
+    learningMode?: LearningMode;
+    learningModeLabel?: string;
+    supportProfile?: SupportProfile;
+    recommendation?: string;
 }
 //# sourceMappingURL=index.d.ts.map

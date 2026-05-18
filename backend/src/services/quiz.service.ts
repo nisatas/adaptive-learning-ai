@@ -1,25 +1,12 @@
 import {
   CLASS_META,
+  TOTAL_QUESTIONS,
   demoQuiz,
   mockStudentProfiles,
-  TOTAL_QUESTIONS,
 } from '../data/mockData';
 import { getLastQuizResult, saveQuizResult } from '../data/inMemoryStore';
 import {
-  QuizBehaviorAnalysisResponse,
-  QuizBehaviorPromptInput,
-  SignalLevel,
-  StudentFeedbackResponse,
-} from '../prompts/contracts/promptContracts';
-import {
-  computeBehaviorSignals,
-  determineAdaptation,
-  toPublicBehaviorSignals,
-} from './adaptation.service';
-import { aiPromptService } from './aiPrompt.service';
-import {
   BehaviorSignals,
-  BehaviorSignalsPublic,
   LearningSignalLevel,
   QuizAnswerSubmission,
   QuizPublic,
@@ -27,12 +14,29 @@ import {
   QuizSubmissionRequest,
   StoredQuizResult,
 } from '../types';
-import { sanitizeAiOutput } from '../utils/sanitizeAiOutput';
+import {
+  computeBehaviorSignals,
+  determineAdaptation,
+  EvaluatedAnswer,
+  toPublicBehaviorSignals,
+} from './adaptation.service';
+import { aiPromptService } from './aiPrompt.service';
 import * as persistenceService from './persistence.service';
+import { sanitizeAiOutput } from '../utils/sanitizeAiOutput';
 
 const VALID_STUDENT_IDS = new Set(
-  mockStudentProfiles.map((s) => s.studentId)
+  mockStudentProfiles.map((s) => s.studentId),
 );
+
+export class QuizServiceError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+  ) {
+    super(message);
+    this.name = 'QuizServiceError';
+  }
+}
 
 export function getDemoQuizPublic(): QuizPublic {
   return {
@@ -42,22 +46,132 @@ export function getDemoQuizPublic(): QuizPublic {
     topic: demoQuiz.topic,
     totalQuestions: TOTAL_QUESTIONS,
     questions: demoQuiz.questions.map(
-      ({ correctOptionId: _correct, ...question }) => question
+      ({ correctOptionId: _correct, ...question }) => question,
     ),
   };
 }
 
+export function isValidStudent(studentId: string): boolean {
+  return VALID_STUDENT_IDS.has(studentId);
+}
+
+export function getStudentLastResult(
+  studentId: string,
+): StoredQuizResult | undefined {
+  return getLastQuizResult(studentId);
+}
+
+export function getStudentName(studentId: string): string {
+  return (
+    mockStudentProfiles.find((s) => s.studentId === studentId)?.name ??
+    'Öğrenci'
+  );
+}
+
 export async function submitDemoQuiz(
-  request: QuizSubmissionRequest
+  request: QuizSubmissionRequest,
 ): Promise<QuizResultResponse> {
   validateSubmission(request);
 
-  const questionMap = new Map(
-    demoQuiz.questions.map((q) => [q.questionId, q])
+  if (request.quizMeta) {
+    return submitTopicQuiz(request);
+  }
+
+  return submitFullDemoQuiz(request);
+}
+
+async function submitTopicQuiz(
+  request: QuizSubmissionRequest,
+): Promise<QuizResultResponse> {
+  const meta = request.quizMeta!;
+  const evaluatedAnswers: EvaluatedAnswer[] = meta.answerDetails.map((a) => ({
+    questionId: a.questionId,
+    selectedOptionId: '',
+    isCorrect: a.isCorrect,
+    isSkipped: false,
+    timeSpentSeconds: a.timeSpentSeconds,
+    topic: a.topic,
+  }));
+
+  const behaviorSignalsInternal = computeBehaviorSignals(evaluatedAnswers);
+  const timeSum = evaluatedAnswers.reduce(
+    (s, a) => s + a.timeSpentSeconds,
+    0,
+  );
+  const averageTimeSeconds =
+    evaluatedAnswers.length > 0
+      ? Math.round(timeSum / evaluatedAnswers.length)
+      : 0;
+
+  const adaptation = determineAdaptation(
+    meta.score,
+    meta.wrongCount,
+    averageTimeSeconds,
+    behaviorSignalsInternal,
+    meta,
   );
 
+  const topicLabel =
+    meta.topicId === 'paragrafta-anlam'
+      ? 'Paragrafta Anlam'
+      : demoQuiz.topic;
+
+  const response: QuizResultResponse = {
+    studentId: request.studentId,
+    quizId: `topic-${meta.topicId}`,
+    lesson: demoQuiz.lesson,
+    gradeLevel: demoQuiz.gradeLevel,
+    topic: topicLabel,
+    totalQuestions: meta.totalQuestions,
+    score: meta.score,
+    correctCount: meta.correctCount,
+    wrongCount: meta.wrongCount,
+    skippedCount: Math.max(
+      0,
+      meta.totalQuestions - meta.correctCount - meta.wrongCount,
+    ),
+    averageTimeSeconds,
+    mostDifficultTopic: topicLabel,
+    studentMessage: adaptation.studentMessage,
+    uiSettings: adaptation.uiSettings,
+    behaviorSignals: toPublicBehaviorSignals(behaviorSignalsInternal),
+    learningMode: adaptation.learningMode,
+    learningModeLabel: adaptation.learningModeLabel,
+    supportProfile: adaptation.supportProfile,
+    recommendation: adaptation.recommendation,
+    topicId: meta.topicId,
+  };
+
+  const stored: StoredQuizResult = {
+    ...response,
+    behaviorSignalsInternal,
+    internalProfile: adaptation.internalProfile,
+    submittedAt: new Date().toISOString(),
+  };
+
+  saveQuizResult(stored);
+
+  void persistenceService.saveQuizSubmission(
+    stored,
+    evaluatedAnswers.map((answer) => ({
+      questionId: answer.questionId,
+      selectedOptionId: answer.selectedOptionId ?? '',
+      isCorrect: answer.isCorrect,
+      skipped: answer.isSkipped,
+      timeSpentSeconds: answer.timeSpentSeconds,
+      topic: answer.topic,
+    })),
+    getStudentName(request.studentId),
+  );
+
+  return response;
+}
+
+async function submitFullDemoQuiz(
+  request: QuizSubmissionRequest,
+): Promise<QuizResultResponse> {
   const answerByQuestionId = new Map(
-    request.answers.map((a) => [a.questionId, a])
+    request.answers.map((a) => [a.questionId, a]),
   );
 
   let correctCount = 0;
@@ -66,22 +180,14 @@ export async function submitDemoQuiz(
   let timeSum = 0;
   let timeCount = 0;
   const topicWrongCount = new Map<string, number>();
-
-  const evaluatedAnswers: Array<{
-    questionId: string;
-    selectedOptionId?: string;
-    isCorrect: boolean;
-    isSkipped: boolean;
-    timeSpentSeconds: number;
-    topic: string;
-  }> = [];
+  const evaluatedAnswers: EvaluatedAnswer[] = [];
 
   for (const question of demoQuiz.questions) {
     const raw = answerByQuestionId.get(question.questionId);
     const normalized = normalizeAnswer(raw);
 
     if (normalized.isSkipped) {
-      skippedCount++;
+      skippedCount += 1;
       evaluatedAnswers.push({
         questionId: question.questionId,
         selectedOptionId: normalized.selectedOptionId,
@@ -95,19 +201,19 @@ export async function submitDemoQuiz(
 
     if (normalized.timeSpentSeconds > 0) {
       timeSum += normalized.timeSpentSeconds;
-      timeCount++;
+      timeCount += 1;
     }
 
     const isCorrect =
       normalized.selectedOptionId === question.correctOptionId;
 
     if (isCorrect) {
-      correctCount++;
+      correctCount += 1;
     } else {
-      wrongCount++;
+      wrongCount += 1;
       topicWrongCount.set(
         question.topic,
-        (topicWrongCount.get(question.topic) ?? 0) + 1
+        (topicWrongCount.get(question.topic) ?? 0) + 1,
       );
     }
 
@@ -123,21 +229,19 @@ export async function submitDemoQuiz(
 
   const averageTimeSeconds =
     timeCount > 0 ? Math.round(timeSum / timeCount) : 0;
-
   const score = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
-
   const mostDifficultTopic = resolveMostDifficultTopic(topicWrongCount);
-
   const behaviorSignalsInternal = computeBehaviorSignals(evaluatedAnswers);
-
   const adaptation = determineAdaptation(
     score,
     wrongCount,
     averageTimeSeconds,
-    behaviorSignalsInternal
+    behaviorSignalsInternal,
   );
 
-  const baseBehaviorSignals = toPublicBehaviorSignals(behaviorSignalsInternal);
+  const baseBehaviorSignals = toPublicBehaviorSignals(
+    behaviorSignalsInternal,
+  );
 
   const [studentMessage, behaviorSignals] = await Promise.all([
     resolveStudentMessage({
@@ -179,6 +283,10 @@ export async function submitDemoQuiz(
     studentMessage,
     uiSettings: adaptation.uiSettings,
     behaviorSignals,
+    learningMode: adaptation.learningMode,
+    learningModeLabel: adaptation.learningModeLabel,
+    supportProfile: adaptation.supportProfile,
+    recommendation: adaptation.recommendation,
   };
 
   const stored: StoredQuizResult = {
@@ -194,42 +302,19 @@ export async function submitDemoQuiz(
     stored,
     evaluatedAnswers.map((answer) => ({
       questionId: answer.questionId,
-      selectedOptionId: answer.selectedOptionId,
+      selectedOptionId: answer.selectedOptionId ?? '',
       isCorrect: answer.isCorrect,
       skipped: answer.isSkipped,
       timeSpentSeconds: answer.timeSpentSeconds,
       topic: answer.topic,
     })),
-    getStudentName(request.studentId)
+    getStudentName(request.studentId),
   );
 
   return response;
 }
 
-export function isValidStudent(studentId: string): boolean {
-  return VALID_STUDENT_IDS.has(studentId);
-}
-
-export function getStudentLastResult(
-  studentId: string
-): StoredQuizResult | undefined {
-  return getLastQuizResult(studentId);
-}
-
-export function getStudentName(studentId: string): string {
-  return (
-    mockStudentProfiles.find((s) => s.studentId === studentId)?.name ??
-    'Öğrenci'
-  );
-}
-
-function normalizeAnswer(
-  raw?: {
-    selectedOptionId?: string;
-    timeSpentSeconds?: number;
-    skipped?: boolean;
-  }
-): {
+function normalizeAnswer(raw: QuizAnswerSubmission | undefined): {
   isSkipped: boolean;
   selectedOptionId?: string;
   timeSpentSeconds: number;
@@ -242,11 +327,9 @@ function normalizeAnswer(
     typeof raw.timeSpentSeconds === 'number' && raw.timeSpentSeconds >= 0
       ? raw.timeSpentSeconds
       : 0;
-
   const hasSelection =
     typeof raw.selectedOptionId === 'string' &&
     raw.selectedOptionId.trim().length > 0;
-
   const isSkipped = raw.skipped === true || !hasSelection;
 
   return {
@@ -260,12 +343,25 @@ function validateSubmission(request: QuizSubmissionRequest): void {
   if (!request.studentId) {
     throw new QuizServiceError('studentId zorunludur.', 400);
   }
-
   if (!isValidStudent(request.studentId)) {
     throw new QuizServiceError(
       `Bilinmeyen öğrenci kimliği: ${request.studentId}`,
-      404
+      404,
     );
+  }
+
+  if (request.quizMeta) {
+    const meta = request.quizMeta;
+    if (!meta.topicId) {
+      throw new QuizServiceError('quizMeta.topicId zorunludur.', 400);
+    }
+    if (
+      typeof meta.score !== 'number' ||
+      typeof meta.totalQuestions !== 'number'
+    ) {
+      throw new QuizServiceError('quizMeta.score ve totalQuestions zorunludur.', 400);
+    }
+    return;
   }
 
   if (!request.answers || !Array.isArray(request.answers)) {
@@ -279,29 +375,27 @@ function validateSubmission(request: QuizSubmissionRequest): void {
     if (!answer.questionId) {
       throw new QuizServiceError('Her cevapta questionId zorunludur.', 400);
     }
-
     if (receivedIds.has(answer.questionId)) {
       throw new QuizServiceError(
         `Tekrarlanan questionId: ${answer.questionId}`,
-        400
+        400,
       );
     }
     receivedIds.add(answer.questionId);
-
     if (!expectedIds.has(answer.questionId)) {
       throw new QuizServiceError(
         `Bilinmeyen soru kimliği: ${answer.questionId}`,
-        400
+        400,
       );
     }
-
     if (
       answer.timeSpentSeconds !== undefined &&
-      (typeof answer.timeSpentSeconds !== 'number' || answer.timeSpentSeconds < 0)
+      (typeof answer.timeSpentSeconds !== 'number' ||
+        answer.timeSpentSeconds < 0)
     ) {
       throw new QuizServiceError(
         'timeSpentSeconds geçerli bir sayı olmalıdır.',
-        400
+        400,
       );
     }
   }
@@ -336,7 +430,7 @@ async function resolveStudentMessage(options: {
       averageTimeSeconds: options.averageTimeSeconds,
       difficultySignal: deriveDifficultySignal(
         options.score,
-        options.wrongCount
+        options.wrongCount,
       ),
       attentionSignal: deriveAttentionSignal(options.behaviorSignals),
     });
@@ -353,9 +447,12 @@ async function resolveStudentMessage(options: {
   }
 }
 
-function composeStudentMessageFromFeedback(
-  feedback: StudentFeedbackResponse
-): string {
+function composeStudentMessageFromFeedback(feedback: {
+  studentGreeting: string;
+  shortFeedback: string;
+  nextStep: string;
+  motivationMessage: string;
+}): string {
   const greeting = feedback.studentGreeting.trim();
   let shortFeedback = feedback.shortFeedback.trim();
   const nextStep = feedback.nextStep.trim();
@@ -371,13 +468,15 @@ function composeStudentMessageFromFeedback(
     }
   }
 
-  return [shortFeedback, nextStep, motivationMessage].filter(Boolean).join(' ');
+  return [shortFeedback, nextStep, motivationMessage]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function deriveDifficultySignal(
   score: number,
-  wrongCount: number
-): SignalLevel {
+  wrongCount: number,
+): LearningSignalLevel {
   if (score < 60 || wrongCount >= 3) {
     return 'high';
   }
@@ -387,7 +486,9 @@ function deriveDifficultySignal(
   return 'low';
 }
 
-function deriveAttentionSignal(signals: BehaviorSignals): SignalLevel {
+function deriveAttentionSignal(
+  signals: BehaviorSignals,
+): LearningSignalLevel {
   if (signals.longHesitations >= 3 || signals.fastWrongAnswers >= 2) {
     return 'high';
   }
@@ -396,16 +497,6 @@ function deriveAttentionSignal(signals: BehaviorSignals): SignalLevel {
   }
   return 'low';
 }
-
-/** Optional interaction fields — request contract unchanged; read when client sends them */
-type InteractionAnswerFields = QuizAnswerSubmission & {
-  answerChangeCount?: number;
-  idleTimeMs?: number;
-  mouseMovementCount?: number;
-  mouseDirectionChanges?: number;
-  focusLostCount?: number;
-  optionHoverCount?: number;
-};
 
 function safeMetric(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
@@ -417,15 +508,8 @@ function safeMetric(value: unknown): number {
 
 function extractInteractionMetrics(
   answers: QuizAnswerSubmission[],
-  behavior: BehaviorSignals
-): {
-  answerChangeCount: number;
-  idleTimeMs: number;
-  mouseMovementCount: number;
-  mouseDirectionChanges: number;
-  focusLostCount: number;
-  optionHoverCount: number;
-} {
+  _behavior: BehaviorSignals,
+) {
   let answerChangeCount = 0;
   let idleTimeMs = 0;
   let mouseMovementCount = 0;
@@ -434,7 +518,14 @@ function extractInteractionMetrics(
   let optionHoverCount = 0;
 
   for (const answer of answers) {
-    const raw = answer as InteractionAnswerFields;
+    const raw = answer as QuizAnswerSubmission & {
+      answerChangeCount?: number;
+      idleTimeMs?: number;
+      mouseMovementCount?: number;
+      mouseDirectionChanges?: number;
+      focusLostCount?: number;
+      optionHoverCount?: number;
+    };
     answerChangeCount += safeMetric(raw.answerChangeCount);
     idleTimeMs += safeMetric(raw.idleTimeMs);
     mouseMovementCount += safeMetric(raw.mouseMovementCount);
@@ -455,8 +546,8 @@ function extractInteractionMetrics(
 
 function deriveMouseMovementLevel(
   mouseMovementCount: number,
-  mouseDirectionChanges: number
-): SignalLevel | undefined {
+  mouseDirectionChanges: number,
+): LearningSignalLevel | undefined {
   const activity = mouseMovementCount + mouseDirectionChanges;
   if (activity <= 0) {
     return undefined;
@@ -475,21 +566,20 @@ function buildQuizBehaviorPromptInput(options: {
   score: number;
   wrongCount: number;
   averageTimeSeconds: number;
-  mostDifficultTopic: string;
   answers: QuizAnswerSubmission[];
   behaviorSignalsInternal: BehaviorSignals;
-}): QuizBehaviorPromptInput {
+}) {
   const interaction = extractInteractionMetrics(
     options.answers,
-    options.behaviorSignalsInternal
+    options.behaviorSignalsInternal,
   );
-
   const difficultySignal = deriveDifficultySignal(
     options.score,
-    options.wrongCount
+    options.wrongCount,
   );
-
-  const attentionSignal = deriveAttentionSignal(options.behaviorSignalsInternal);
+  const attentionSignal = deriveAttentionSignal(
+    options.behaviorSignalsInternal,
+  );
 
   return {
     studentId: options.studentId,
@@ -510,29 +600,34 @@ function buildQuizBehaviorPromptInput(options: {
     longHesitations: options.behaviorSignalsInternal.longHesitations,
     mouseMovementLevel: deriveMouseMovementLevel(
       interaction.mouseMovementCount,
-      interaction.mouseDirectionChanges
+      interaction.mouseDirectionChanges,
     ),
   };
 }
 
 function applyQuizBehaviorAnalysis(
-  base: BehaviorSignalsPublic,
-  analysis: QuizBehaviorAnalysisResponse
-): BehaviorSignalsPublic {
+  base: ReturnType<typeof toPublicBehaviorSignals>,
+  analysis: {
+    interactionSummary: string;
+    safeInterpretation: string;
+    behaviorNotes: string[];
+    attentionSignal?: string;
+    engagementSignal?: string;
+    confidenceSignal?: string;
+    confidence?: string;
+  },
+) {
   const fallbackSummary =
-    'Analiz sınırlı veriyle oluşturuldu. Quiz etkileşim verileri birlikte değerlendirildi.';
-
+    'Quiz sonuçları değerlendirildi. Öğrenme deneyimi buna göre güncellendi.';
   const interactionSummary = sanitizeAiOutput(
     analysis.interactionSummary.trim() || fallbackSummary,
-    fallbackSummary
+    fallbackSummary,
   ).text;
-
   const safeInterpretation = sanitizeAiOutput(
     analysis.safeInterpretation.trim() ||
       'Bu yorum yalnızca quiz etkileşim verilerine dayalı sınırlı bir öğrenme sinyalidir.',
-    'Adım adım çözüm desteği faydalı olabilir.'
+    'Adım adım çözüm desteği faydalı olabilir.',
   ).text;
-
   const behaviorNotes = analysis.behaviorNotes
     .map((note) => sanitizeAiOutput(note, '').text)
     .filter((note) => note.length > 0)
@@ -555,7 +650,9 @@ function applyQuizBehaviorAnalysis(
   };
 }
 
-function toLearningSignalLevel(value: SignalLevel): LearningSignalLevel {
+function toLearningSignalLevel(
+  value: string | undefined,
+): LearningSignalLevel {
   if (value === 'low' || value === 'medium' || value === 'high') {
     return value;
   }
@@ -570,12 +667,13 @@ async function enrichBehaviorSignalsWithAi(options: {
   mostDifficultTopic: string;
   answers: QuizAnswerSubmission[];
   behaviorSignalsInternal: BehaviorSignals;
-  base: BehaviorSignalsPublic;
-}): Promise<BehaviorSignalsPublic> {
+  base: ReturnType<typeof toPublicBehaviorSignals>;
+}) {
   try {
-    const analysis = await aiPromptService.generateQuizBehaviorAnalysis(
-      buildQuizBehaviorPromptInput(options)
-    );
+    const analysis =
+      await aiPromptService.generateQuizBehaviorAnalysis(
+        buildQuizBehaviorPromptInput(options),
+      );
     return applyQuizBehaviorAnalysis(options.base, analysis);
   } catch {
     return options.base;
@@ -583,7 +681,7 @@ async function enrichBehaviorSignalsWithAi(options: {
 }
 
 function resolveMostDifficultTopic(
-  topicWrongCount: Map<string, number>
+  topicWrongCount: Map<string, number>,
 ): string {
   if (topicWrongCount.size === 0) {
     return demoQuiz.questions[0]?.topic ?? demoQuiz.topic;
@@ -591,23 +689,11 @@ function resolveMostDifficultTopic(
 
   let maxTopic = '';
   let maxCount = 0;
-
   for (const [topic, count] of topicWrongCount) {
     if (count > maxCount) {
       maxCount = count;
       maxTopic = topic;
     }
   }
-
   return maxTopic;
-}
-
-export class QuizServiceError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number
-  ) {
-    super(message);
-    this.name = 'QuizServiceError';
-  }
 }

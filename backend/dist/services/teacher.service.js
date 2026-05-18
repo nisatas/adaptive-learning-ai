@@ -543,7 +543,9 @@ async function enrichTeacherDashboardWeeklyReport(dashboard, snapshots) {
             weeklyReport: mapAiWeeklyReport(ai, fallback),
         };
     }
-    catch {
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown';
+        console.warn(`[TeacherDashboard] weekly report AI fallback: ${message}`);
         return {
             ...dashboard,
             weeklyReport: fallback,
@@ -684,7 +686,9 @@ async function enrichTeacherDashboardWithAi(base, students) {
         const analysis = await aiPrompt_service_1.aiPromptService.generateTeacherDashboardAnalysis(buildTeacherDashboardPromptInput(base, students));
         return applyTeacherDashboardAnalysis(base, analysis, students);
     }
-    catch {
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown';
+        console.warn(`[TeacherDashboard] AI enrichment failed, using rule-based data: ${message}`);
         return base;
     }
 }

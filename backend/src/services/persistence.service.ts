@@ -309,5 +309,15 @@ function mapSubmissionRowToStored(row: {
     },
     internalProfile: 'BALANCED',
     submittedAt: row.createdAt.toISOString(),
+    learningMode: row.score >= 70 ? 'STANDARD' : 'PERSONALIZED',
+    learningModeLabel:
+      row.score >= 70
+        ? 'Standart Öğrenme Modu'
+        : 'Kişiselleştirilmiş Öğrenme Modu',
+    supportProfile: row.score >= 70 ? null : 'balanced_support',
+    recommendation:
+      row.score >= 70
+        ? 'İçerikler standart akışla sunulmaya devam edecek.'
+        : 'İçerikler artık senin öğrenme hızına ve ihtiyaçlarına göre daha anlaşılır sunulacak.',
   };
 }

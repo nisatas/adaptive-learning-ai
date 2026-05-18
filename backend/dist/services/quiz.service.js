@@ -35,17 +35,26 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuizServiceError = void 0;
 exports.getDemoQuizPublic = getDemoQuizPublic;
-exports.submitDemoQuiz = submitDemoQuiz;
 exports.isValidStudent = isValidStudent;
 exports.getStudentLastResult = getStudentLastResult;
 exports.getStudentName = getStudentName;
+exports.submitDemoQuiz = submitDemoQuiz;
 const mockData_1 = require("../data/mockData");
 const inMemoryStore_1 = require("../data/inMemoryStore");
 const adaptation_service_1 = require("./adaptation.service");
 const aiPrompt_service_1 = require("./aiPrompt.service");
-const sanitizeAiOutput_1 = require("../utils/sanitizeAiOutput");
 const persistenceService = __importStar(require("./persistence.service"));
+const sanitizeAiOutput_1 = require("../utils/sanitizeAiOutput");
 const VALID_STUDENT_IDS = new Set(mockData_1.mockStudentProfiles.map((s) => s.studentId));
+class QuizServiceError extends Error {
+    statusCode;
+    constructor(message, statusCode) {
+        super(message);
+        this.statusCode = statusCode;
+        this.name = 'QuizServiceError';
+    }
+}
+exports.QuizServiceError = QuizServiceError;
 function getDemoQuizPublic() {
     return {
         quizId: mockData_1.demoQuiz.quizId,
@@ -56,9 +65,82 @@ function getDemoQuizPublic() {
         questions: mockData_1.demoQuiz.questions.map(({ correctOptionId: _correct, ...question }) => question),
     };
 }
+function isValidStudent(studentId) {
+    return VALID_STUDENT_IDS.has(studentId);
+}
+function getStudentLastResult(studentId) {
+    return (0, inMemoryStore_1.getLastQuizResult)(studentId);
+}
+function getStudentName(studentId) {
+    return (mockData_1.mockStudentProfiles.find((s) => s.studentId === studentId)?.name ??
+        'Öğrenci');
+}
 async function submitDemoQuiz(request) {
     validateSubmission(request);
-    const questionMap = new Map(mockData_1.demoQuiz.questions.map((q) => [q.questionId, q]));
+    if (request.quizMeta) {
+        return submitTopicQuiz(request);
+    }
+    return submitFullDemoQuiz(request);
+}
+async function submitTopicQuiz(request) {
+    const meta = request.quizMeta;
+    const evaluatedAnswers = meta.answerDetails.map((a) => ({
+        questionId: a.questionId,
+        selectedOptionId: '',
+        isCorrect: a.isCorrect,
+        isSkipped: false,
+        timeSpentSeconds: a.timeSpentSeconds,
+        topic: a.topic,
+    }));
+    const behaviorSignalsInternal = (0, adaptation_service_1.computeBehaviorSignals)(evaluatedAnswers);
+    const timeSum = evaluatedAnswers.reduce((s, a) => s + a.timeSpentSeconds, 0);
+    const averageTimeSeconds = evaluatedAnswers.length > 0
+        ? Math.round(timeSum / evaluatedAnswers.length)
+        : 0;
+    const adaptation = (0, adaptation_service_1.determineAdaptation)(meta.score, meta.wrongCount, averageTimeSeconds, behaviorSignalsInternal, meta);
+    const topicLabel = meta.topicId === 'paragrafta-anlam'
+        ? 'Paragrafta Anlam'
+        : mockData_1.demoQuiz.topic;
+    const response = {
+        studentId: request.studentId,
+        quizId: `topic-${meta.topicId}`,
+        lesson: mockData_1.demoQuiz.lesson,
+        gradeLevel: mockData_1.demoQuiz.gradeLevel,
+        topic: topicLabel,
+        totalQuestions: meta.totalQuestions,
+        score: meta.score,
+        correctCount: meta.correctCount,
+        wrongCount: meta.wrongCount,
+        skippedCount: Math.max(0, meta.totalQuestions - meta.correctCount - meta.wrongCount),
+        averageTimeSeconds,
+        mostDifficultTopic: topicLabel,
+        studentMessage: adaptation.studentMessage,
+        uiSettings: adaptation.uiSettings,
+        behaviorSignals: (0, adaptation_service_1.toPublicBehaviorSignals)(behaviorSignalsInternal),
+        learningMode: adaptation.learningMode,
+        learningModeLabel: adaptation.learningModeLabel,
+        supportProfile: adaptation.supportProfile,
+        recommendation: adaptation.recommendation,
+        topicId: meta.topicId,
+    };
+    const stored = {
+        ...response,
+        behaviorSignalsInternal,
+        internalProfile: adaptation.internalProfile,
+        submittedAt: new Date().toISOString(),
+    };
+    (0, inMemoryStore_1.saveQuizResult)(stored);
+    void persistenceService.saveQuizSubmission(stored, evaluatedAnswers.map((answer) => ({
+        questionId: answer.questionId,
+        selectedOptionId: answer.selectedOptionId ?? '',
+        isCorrect: answer.isCorrect,
+        skipped: answer.isSkipped,
+        timeSpentSeconds: answer.timeSpentSeconds,
+        topic: answer.topic,
+    })), getStudentName(request.studentId));
+    return response;
+}
+async function submitFullDemoQuiz(request) {
     const answerByQuestionId = new Map(request.answers.map((a) => [a.questionId, a]));
     let correctCount = 0;
     let wrongCount = 0;
@@ -71,7 +153,7 @@ async function submitDemoQuiz(request) {
         const raw = answerByQuestionId.get(question.questionId);
         const normalized = normalizeAnswer(raw);
         if (normalized.isSkipped) {
-            skippedCount++;
+            skippedCount += 1;
             evaluatedAnswers.push({
                 questionId: question.questionId,
                 selectedOptionId: normalized.selectedOptionId,
@@ -84,14 +166,14 @@ async function submitDemoQuiz(request) {
         }
         if (normalized.timeSpentSeconds > 0) {
             timeSum += normalized.timeSpentSeconds;
-            timeCount++;
+            timeCount += 1;
         }
         const isCorrect = normalized.selectedOptionId === question.correctOptionId;
         if (isCorrect) {
-            correctCount++;
+            correctCount += 1;
         }
         else {
-            wrongCount++;
+            wrongCount += 1;
             topicWrongCount.set(question.topic, (topicWrongCount.get(question.topic) ?? 0) + 1);
         }
         evaluatedAnswers.push({
@@ -148,6 +230,10 @@ async function submitDemoQuiz(request) {
         studentMessage,
         uiSettings: adaptation.uiSettings,
         behaviorSignals,
+        learningMode: adaptation.learningMode,
+        learningModeLabel: adaptation.learningModeLabel,
+        supportProfile: adaptation.supportProfile,
+        recommendation: adaptation.recommendation,
     };
     const stored = {
         ...response,
@@ -158,23 +244,13 @@ async function submitDemoQuiz(request) {
     (0, inMemoryStore_1.saveQuizResult)(stored);
     void persistenceService.saveQuizSubmission(stored, evaluatedAnswers.map((answer) => ({
         questionId: answer.questionId,
-        selectedOptionId: answer.selectedOptionId,
+        selectedOptionId: answer.selectedOptionId ?? '',
         isCorrect: answer.isCorrect,
         skipped: answer.isSkipped,
         timeSpentSeconds: answer.timeSpentSeconds,
         topic: answer.topic,
     })), getStudentName(request.studentId));
     return response;
-}
-function isValidStudent(studentId) {
-    return VALID_STUDENT_IDS.has(studentId);
-}
-function getStudentLastResult(studentId) {
-    return (0, inMemoryStore_1.getLastQuizResult)(studentId);
-}
-function getStudentName(studentId) {
-    return (mockData_1.mockStudentProfiles.find((s) => s.studentId === studentId)?.name ??
-        'Öğrenci');
 }
 function normalizeAnswer(raw) {
     if (!raw) {
@@ -199,6 +275,17 @@ function validateSubmission(request) {
     if (!isValidStudent(request.studentId)) {
         throw new QuizServiceError(`Bilinmeyen öğrenci kimliği: ${request.studentId}`, 404);
     }
+    if (request.quizMeta) {
+        const meta = request.quizMeta;
+        if (!meta.topicId) {
+            throw new QuizServiceError('quizMeta.topicId zorunludur.', 400);
+        }
+        if (typeof meta.score !== 'number' ||
+            typeof meta.totalQuestions !== 'number') {
+            throw new QuizServiceError('quizMeta.score ve totalQuestions zorunludur.', 400);
+        }
+        return;
+    }
     if (!request.answers || !Array.isArray(request.answers)) {
         throw new QuizServiceError('answers dizisi zorunludur.', 400);
     }
@@ -216,7 +303,8 @@ function validateSubmission(request) {
             throw new QuizServiceError(`Bilinmeyen soru kimliği: ${answer.questionId}`, 400);
         }
         if (answer.timeSpentSeconds !== undefined &&
-            (typeof answer.timeSpentSeconds !== 'number' || answer.timeSpentSeconds < 0)) {
+            (typeof answer.timeSpentSeconds !== 'number' ||
+                answer.timeSpentSeconds < 0)) {
             throw new QuizServiceError('timeSpentSeconds geçerli bir sayı olmalıdır.', 400);
         }
     }
@@ -262,7 +350,9 @@ function composeStudentMessageFromFeedback(feedback) {
             shortFeedback = `${greeting} ${shortFeedback}`;
         }
     }
-    return [shortFeedback, nextStep, motivationMessage].filter(Boolean).join(' ');
+    return [shortFeedback, nextStep, motivationMessage]
+        .filter(Boolean)
+        .join(' ');
 }
 function deriveDifficultySignal(score, wrongCount) {
     if (score < 60 || wrongCount >= 3) {
@@ -289,7 +379,7 @@ function safeMetric(value) {
     }
     return Math.round(n);
 }
-function extractInteractionMetrics(answers, behavior) {
+function extractInteractionMetrics(answers, _behavior) {
     let answerChangeCount = 0;
     let idleTimeMs = 0;
     let mouseMovementCount = 0;
@@ -404,13 +494,4 @@ function resolveMostDifficultTopic(topicWrongCount) {
     }
     return maxTopic;
 }
-class QuizServiceError extends Error {
-    statusCode;
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-        this.name = 'QuizServiceError';
-    }
-}
-exports.QuizServiceError = QuizServiceError;
 //# sourceMappingURL=quiz.service.js.map

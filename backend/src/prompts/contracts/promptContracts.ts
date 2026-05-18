@@ -204,6 +204,8 @@ export interface MeetWorkflowResponse {
   meetingReason: string;
   teacherMessage: string;
   suggestedDurationMinutes: number;
+  recommendedDateLabel: string;
+  recommendedTime: string;
   suggestedAgenda: string[];
   studentSupportFocus: string[];
   parentOrGuardianNote: string;

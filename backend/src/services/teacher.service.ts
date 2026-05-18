@@ -38,7 +38,7 @@ const TEACHER_ROLE = 'Türkçe Öğretmeni';
 const DASHBOARD_FRONTEND_HINTS: TeacherDashboardFrontendHints = {
   recommendedActionsTarget: 'Önerilen Aksiyonlar',
   supportDistributionTarget: 'Öğrenme Destek Dağılımı',
-  agentFeedTarget: 'Puq.ai Agent Feed',
+  agentFeedTarget: 'AI Destekli Öneriler',
   settingsStatus: 'Yakında',
 };
 
@@ -273,7 +273,7 @@ export async function buildPuqAiAgentFeed(
       type: 'insight',
       title: 'Sınıf içgörüsü',
       message: insightMessage,
-      source: 'Puq.ai',
+      source: 'Puq.ai ile oluşturuldu',
       createdAt: insightCreatedAt,
     },
     {
@@ -281,7 +281,7 @@ export async function buildPuqAiAgentFeed(
       type: 'recommendation',
       title: 'Önerilen öğretim aksiyonu',
       message: `Bir sonraki ${lessonLabel} oturumunda kısa tekrar, örnek çözüm ve mini alıştırma akışı planlanabilir.`,
-      source: 'Puq.ai',
+      source: 'Puq.ai ile oluşturuldu',
       createdAt: nowIso,
     },
     {
@@ -320,7 +320,7 @@ function ensurePuqAiAgentFeed(feed: PuqAiAgentFeedItem[]): PuqAiAgentFeedItem[] 
       type: 'insight',
       title: 'Sınıf içgörüsü',
       message: SAFE_FEED_FALLBACK_BY_TYPE.insight,
-      source: 'Puq.ai',
+      source: 'Puq.ai ile oluşturuldu',
       createdAt: nowIso,
     },
     {
@@ -328,7 +328,7 @@ function ensurePuqAiAgentFeed(feed: PuqAiAgentFeedItem[]): PuqAiAgentFeedItem[] 
       type: 'recommendation',
       title: 'Önerilen öğretim aksiyonu',
       message: SAFE_FEED_FALLBACK_BY_TYPE.recommendation,
-      source: 'Puq.ai',
+      source: 'Puq.ai ile oluşturuldu',
       createdAt: nowIso,
     },
     {
@@ -789,7 +789,11 @@ async function enrichTeacherDashboardWeeklyReport(
       ...dashboard,
       weeklyReport: mapAiWeeklyReport(ai, fallback),
     };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    console.warn(
+      `[TeacherDashboard] weekly report AI fallback: ${message}`,
+    );
     return {
       ...dashboard,
       weeklyReport: fallback,
@@ -966,7 +970,7 @@ function enrichPuqAiAgentFeedFromAnalysis(
   if (adaptationMessage && copy[2]) {
     copy[2] = {
       ...copy[2],
-      title: 'Destek ve workflow özeti',
+      title: 'Destek ve öğrenme özeti',
       message: sanitizeAiOutput(adaptationMessage, copy[2].message).text,
     };
   }
@@ -1029,7 +1033,11 @@ async function enrichTeacherDashboardWithAi(
       buildTeacherDashboardPromptInput(base, students)
     );
     return applyTeacherDashboardAnalysis(base, analysis, students);
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    console.warn(
+      `[TeacherDashboard] AI enrichment failed, using rule-based data: ${message}`,
+    );
     return base;
   }
 }

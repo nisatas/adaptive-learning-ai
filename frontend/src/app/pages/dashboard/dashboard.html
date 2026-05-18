@@ -1,233 +1,679 @@
-<div class="dashboard-layout" *ngIf="dashboardData">
-
-  <aside class="sidebar">
-    <div class="teacher-card">
-      <div class="teacher-avatar">ZD</div>
-      <h3>{{ dashboardData.teacherName }}</h3>
-      <p>{{ dashboardData.teacherRole }}</p>
-      <span>{{ dashboardData.className }}</span>
+<div class="teacher-panel-layout">
+  <div class="teacher-loading" *ngIf="isLoading">
+    <div class="loading-card">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <p>Öğretmen paneli yükleniyor…</p>
     </div>
+  </div>
 
-    <nav class="sidebar-menu">
-  <button (click)="scrollToSection('dashboard')">
-    Dashboard
-  </button>
-  
-  <button (click)="scrollToSection('weekly-report')">
-  Haftalık AI Raporu
-</button>
-
-  <button (click)="scrollToSection('class-summary')">
-    Sınıf Özeti
-  </button>
-
-  <button (click)="scrollToSection('analytics')">
-    Analizler
-  </button>
-
-  <button disabled>
-    Ayarlar
-  </button>
-</nav>
-  </aside>
-
-  <main class="dashboard-content">
-
-    <header class="top-header">
-      <div>
-        <h1>Adaptive Learning AI</h1>
-        <p>{{ dashboardData.lesson }} · {{ dashboardData.topic }}</p>
+  <div class="panel-layout teacher-shell" *ngIf="dashboardData && !isLoading">
+    <aside class="app-sidebar teacher-sidebar" aria-label="Öğretmen menüsü">
+      <div class="sidebar-brand">
+        <img src="/assets/logo/logo1.png" alt="NeuroAdapt Logo" />
+        <div class="sidebar-brand-text">
+          <strong class="sidebar-brand-title">NeuroAdapt</strong>
+          <span class="sidebar-brand-subtitle">Öğretmen Paneli</span>
+        </div>
       </div>
 
-      <button class="experience-button" (click)="goToStudentExperience()">
-        Öğrenci Paneline Geç
+      <div class="sidebar-profile-card">
+        <div class="sidebar-avatar">{{ getTeacherInitials() }}</div>
+        <h3 class="sidebar-profile-name">{{ dashboardData.teacherName }}</h3>
+        <p class="sidebar-profile-role">{{ dashboardData.teacherRole }}</p>
+        <span class="sidebar-class-badge">{{ dashboardData.className }}</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          (click)="scrollToSection('dashboard-overview')"
+        >
+          Dashboard
+        </button>
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          (click)="scrollToSection('weekly-report')"
+        >
+          Haftalık AI Raporu
+        </button>
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          (click)="scrollToSection('support-students')"
+        >
+          Destek Listesi
+        </button>
+        <button
+          type="button"
+          class="sidebar-nav-item"
+          (click)="scrollToSection('ai-recommendations')"
+        >
+          AI Önerileri
+        </button>
+        <button type="button" class="sidebar-nav-item" disabled>
+          Ayarlar
+        </button>
+      </nav>
+
+      <div class="sidebar-illustration">
+        <img
+          src="/assets/home/mascot-trio.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <p>Öğrenci performansını analiz eder, uygulanabilir öneriler sunar.</p>
+      </div>
+    </aside>
+
+    <div class="panel-main teacher-main-column">
+      <header class="teacher-header">
+        <div class="header-brand">
+          <h1>Öğretmen Dashboard</h1>
+          <p>{{ dashboardData.lesson }} · {{ dashboardData.className }}</p>
+        </div>
+
+        <div class="header-actions">
+          <div class="ui-preview-wrap">
+            <button
+              type="button"
+              class="ui-preview-toggle"
+              (click)="toggleUiPreviewPanel()"
+              [attr.aria-expanded]="uiPreviewOpen"
+            >
+              Arayüz Önizleme
+            </button>
+            <div class="ui-preview-panel" *ngIf="uiPreviewOpen" role="dialog" aria-label="Arayüz önizleme">
+              <p class="ui-preview-intro">
+                Sunum için öğrenci ekranını farklı kişiselleştirme görünümleriyle açın.
+                Gerçek öğrenci verisi değiştirilmez.
+              </p>
+              <div class="ui-preview-actions">
+                <button
+                  type="button"
+                  class="ui-preview-chip"
+                  *ngFor="let opt of uiPreviewOptions"
+                  (click)="openUiPreview(opt.key, 'lesson')"
+                >
+                  <strong>{{ opt.label }}</strong>
+                  <span>{{ opt.description }}</span>
+                </button>
+              </div>
+              <div class="ui-preview-links">
+                <button type="button" (click)="openUiPreview('reading', 'quiz')">
+                  Quiz — Okuma Kolaylığı
+                </button>
+                <button type="button" (click)="openUiPreview('focus', 'quiz')">
+                  Quiz — Odak Desteği
+                </button>
+                <button type="button" (click)="goToStudentExperience()">
+                  Öğrenci paneli (canlı)
+                </button>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="experience-button" (click)="goToStudentExperience()">
+            Öğrenci Paneline Geç
+          </button>
+        </div>
+      </header>
+
+      <main class="teacher-content">
+        <div
+          class="demo-warning-banner"
+          *ngIf="isDemoMode"
+          role="status"
+        >
+          <span class="demo-warning-icon" aria-hidden="true">!</span>
+          <div>
+            <strong>Bağlantı uyarısı:</strong>
+            Canlı veri alınamadı; panel geçici olarak yerel özet verilerle gösteriliyor.
+          </div>
+          <button type="button" class="demo-retry-button" (click)="loadDashboard()">
+            Yeniden dene
+          </button>
+        </div>
+
+        <section class="teacher-hero" id="dashboard-overview">
+          <div class="teacher-hero-text">
+            <span class="eyebrow">Hoş geldiniz</span>
+            <h2>{{ dashboardData.teacherName }}</h2>
+            <p>
+              Sınıfınızın öğrenme durumunu, destek ihtiyacı olan öğrencileri ve AI
+              önerilerini buradan takip edebilirsiniz.
+            </p>
+            <p class="hero-note">
+              Bu panel, öğrencilerin öğrenme performansını analiz eder ve öğretmene
+              uygulanabilir AI destekli öneriler sunar.
+            </p>
+            <div class="hero-actions">
+              <button
+                type="button"
+                class="primary-button"
+                (click)="scrollToSection('support-students')"
+              >
+                Sınıfı İncele
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                (click)="scrollToSection('ai-recommendations')"
+              >
+                AI Önerilerini Gör
+              </button>
+            </div>
+          </div>
+
+          <img
+            class="teacher-hero-mascot"
+            src="/assets/ogrencisayfasi/kedi.png"
+            alt=""
+            aria-hidden="true"
+          />
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <span class="stat-label">Sınıf Ortalaması</span>
+            <p class="stat-value">{{ dashboardData.classAverage }}</p>
+            <span class="stat-meta">puan</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Toplam Öğrenci</span>
+            <p class="stat-value">{{ dashboardData.studentCount }}</p>
+            <span class="stat-meta">aktif kayıt</span>
+          </article>
+
+          <article class="stat-card stat-card--alert">
+            <span class="stat-label">Destek Önerilen</span>
+            <p class="stat-value">{{ dashboardData.supportSuggestedCount }}</p>
+            <span class="stat-meta">öğrenci</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">İleri Seviye Hazır</span>
+            <p class="stat-value">{{ dashboardData.challengeReadyCount }}</p>
+            <span class="stat-meta">öğrenci</span>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Ort. Yanıt Süresi</span>
+            <p class="stat-value">{{ dashboardData.averageResponseTime }}</p>
+            <span class="stat-meta">saniye</span>
+          </article>
+
+          <article class="stat-card stat-card--topic">
+            <span class="stat-label">En Zor Konu</span>
+            <p class="stat-value stat-value--topic">
+              {{ dashboardData.mostDifficultTopic }}
+            </p>
+            <span class="stat-meta">sınıf geneli</span>
+          </article>
+        </section>
+
+        <section
+          id="weekly-report"
+          class="weekly-report-section"
+          *ngIf="dashboardData.weeklyReport"
+        >
+          <div class="weekly-report-card">
+            <div class="weekly-report-header">
+              <div>
+                <span class="eyebrow">Haftalık AI Sınıf Raporu</span>
+                <h3>{{ dashboardData.weeklyReport.classSummary }}</h3>
+              </div>
+              <span
+                class="trend-badge"
+                [class.trend-badge--up]="
+                  dashboardData.weeklyReport.progressTrend === 'improving'
+                "
+              >
+                {{ formatTrend(dashboardData.weeklyReport.progressTrend) }}
+              </span>
+            </div>
+
+            <div class="weekly-grid">
+              <div class="weekly-box">
+                <h4>En Çok Zorlanılan Konu</h4>
+                <p>{{ dashboardData.weeklyReport.mostDifficultTopic }}</p>
+              </div>
+
+              <div class="weekly-box">
+                <h4>Önemli Bulgular</h4>
+                <ul>
+                  <li *ngFor="let finding of dashboardData.weeklyReport.keyFindings">
+                    {{ finding }}
+                  </li>
+                </ul>
+              </div>
+
+              <div class="weekly-box">
+                <h4>Önerilen Aksiyonlar</h4>
+                <ul>
+                  <li
+                    *ngFor="
+                      let action of dashboardData.weeklyReport.recommendedTeacherActions
+                    "
+                  >
+                    {{ action }}
+                  </li>
+                </ul>
+              </div>
+
+              <div class="weekly-box">
+                <h4>Gelecek Hafta Odak</h4>
+                <div class="focus-tags">
+                  <span
+                    class="focus-tag"
+                    *ngFor="let focus of dashboardData.weeklyReport.nextWeekFocus"
+                  >
+                    {{ focus }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="ai-recommendations" class="ai-insights-section">
+          <div class="ai-insights-header">
+            <div class="ai-insights-title-row">
+              <div>
+                <span class="eyebrow">AI Destekli Haftalık Sınıf Raporu</span>
+                <h3>Öğretmen için uygulanabilir öneriler hazır</h3>
+              </div>
+              <span class="ai-source-badge">Puq.ai ile oluşturuldu</span>
+            </div>
+            <p>
+              Quiz sonuçları, zorlanılan konular ve öğrenci ilerlemeleri analiz edilerek
+              öğretmen için uygulanabilir öneriler hazırlandı.
+            </p>
+          </div>
+
+          <div class="ai-insights-grid">
+            <article class="ai-insight-card">
+              <h4>Sınıf Genel Durumu</h4>
+              <ul>
+                <li *ngFor="let line of classStatusLines">{{ line }}</li>
+              </ul>
+            </article>
+            <article class="ai-insight-card">
+              <h4>Öğrenci Destek İhtiyacı</h4>
+              <ul>
+                <li *ngFor="let line of studentSupportLines">{{ line }}</li>
+              </ul>
+            </article>
+            <article class="ai-insight-card">
+              <h4>Öğretmen Aksiyon Planı</h4>
+              <ul>
+                <li *ngFor="let line of teacherActionLines">{{ line }}</li>
+              </ul>
+              <span class="ai-hint-label">AI destekli öneri</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="puq-assistant" class="puq-assistant-section">
+          <div class="puq-assistant-card">
+            <div class="puq-assistant-header">
+              <span class="eyebrow">AI destekli rapor</span>
+              <h3>Sınıf için uygulanabilir öneriler</h3>
+              <p>
+                Sınıf genelindeki quiz sonuçları ve zorlanılan konular analiz edilerek
+                öğretmen için kısa aksiyon önerileri hazırlandı.
+              </p>
+              <span class="ai-source-badge ai-source-badge--light">Puq.ai ile oluşturuldu</span>
+            </div>
+
+            <div class="puq-feed-grid">
+              <article class="puq-feed-item" *ngFor="let feed of dashboardData.puqAiAgentFeed">
+                <span class="puq-feed-type">{{ feed.type }}</span>
+                <h4>{{ feed.title }}</h4>
+                <p>{{ feed.message }}</p>
+              </article>
+            </div>
+          </div>
+
+          <aside class="recommended-actions-card">
+            <span class="ai-hint-label">AI destekli öneri</span>
+            <h3>Öğretmen Aksiyon Planı</h3>
+            <ul>
+              <li *ngFor="let action of dashboardData.recommendedActions">
+                {{ action }}
+              </li>
+            </ul>
+          </aside>
+        </section>
+
+        <section id="support-students" class="support-students-section">
+          <div class="section-heading">
+            <h3>Destek İhtiyacı Olan Öğrenciler</h3>
+            <p>Bireysel görüşme ve öğrenme modu önerileri</p>
+          </div>
+
+          <div class="support-student-list">
+            <article
+              class="support-student-card"
+              *ngFor="let student of supportStudents"
+            >
+              <div class="support-student-main">
+                <h4>{{ student.studentName }}</h4>
+                <p class="support-topic">
+                  {{ student.lesson }} · {{ student.topic }}
+                </p>
+                <p class="support-reason">{{ student.reason }}</p>
+                <p class="support-ai">{{ student.suggestedAction }}</p>
+
+                <div class="support-badges">
+                  <span class="support-badge support-badge--focus">Odak Desteği</span>
+                  <span class="support-badge support-badge--reading"
+                    >Okuma Kolaylığı</span
+                  >
+                  <span class="support-badge support-badge--repeat">Konu Tekrarı</span>
+                  <span class="support-badge support-badge--practice">Ek Alıştırma</span>
+                </div>
+              </div>
+
+              <div class="support-student-actions">
+                <span class="priority-badge priority-badge--{{ student.priority }}">
+                  {{ formatPriority(student.priority) }}
+                </span>
+                <div class="meeting-action-group">
+                  <button
+                    type="button"
+                    class="primary-button"
+                    (click)="openMeetingModal(student)"
+                  >
+                    Görüşme Planla
+                  </button>
+                  <span class="meeting-action-hint">{{
+                    getSuggestedMeetingHint(student)
+                  }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="planned-meetings" class="planned-meetings-section">
+          <div class="section-heading">
+            <h3>Planlanan Görüşmeler</h3>
+            <p *ngIf="plannedMeetings.length === 0">Henüz planlanan görüşme yok.</p>
+          </div>
+
+          <div class="planned-meetings-list" *ngIf="plannedMeetings.length > 0">
+            <article
+              class="planned-meeting-card"
+              *ngFor="let meeting of plannedMeetings"
+            >
+              <div class="planned-meeting-card-top">
+                <h4>{{ meeting.studentName }}</h4>
+                <span class="planned-meeting-status">{{ meeting.status }}</span>
+              </div>
+              <p class="planned-meeting-topic">{{ meeting.topic }}</p>
+              <p class="planned-meeting-meta">
+                {{ formatPlannedMeetingSchedule(meeting) }}
+              </p>
+              <p class="planned-meeting-summary">{{ meeting.summary }}</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="bottom-panels">
+          <article class="class-analysis-card">
+            <span class="eyebrow">AI destekli rapor</span>
+            <h3>Sınıf özeti</h3>
+            <p>
+              Sınıf genelindeki quiz sonuçları, zorlanılan konular ve öğrenme sinyalleri
+              analiz edilerek öğretmene uygulanabilir öneriler üretildi.
+            </p>
+            <ul class="class-analysis-metrics">
+              <li>
+                <strong>En çok zorlanılan konu:</strong>
+                {{ dashboardData.mostDifficultTopic }}
+              </li>
+              <li>
+                <strong>Kişiselleştirilmiş öğrenme önerilen öğrenci:</strong>
+                {{ dashboardData.supportSuggestedCount }}
+              </li>
+              <li>
+                <strong>Sınıf genel önerisi:</strong>
+                {{ classAnalysisSummary }}
+              </li>
+              <li>
+                <strong>Öğretmen aksiyonu:</strong>
+                {{ classAnalysisAction }}
+              </li>
+            </ul>
+            <span class="ai-source-badge">Puq.ai ile oluşturuldu</span>
+          </article>
+
+          <article class="distribution-card">
+            <h3>{{ dashboardData.frontendHints.supportDistributionTarget }}</h3>
+            <div
+              class="distribution-item"
+              *ngFor="let item of dashboardData.supportDistribution"
+            >
+              <div class="distribution-row">
+                <span>{{ item.label }}</span>
+                <strong>%{{ item.percentage }}</strong>
+              </div>
+              <div class="distribution-track">
+                <div
+                  class="distribution-fill"
+                  [style.width.%]="item.percentage"
+                ></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="class-summary-card">
+            <h3>Sınıf Özeti</h3>
+            <p>
+              <strong>En çok zorlanılan konu:</strong>
+              {{ dashboardData.mostDifficultTopic }}
+            </p>
+            <p>
+              <strong>İleri seviye hazır öğrenci:</strong>
+              {{ dashboardData.challengeReadyCount }}
+            </p>
+            <p>
+              <strong>Kişiselleştirilmiş öğrenme önerilen öğrenci:</strong>
+              {{ dashboardData.supportSuggestedCount }}
+            </p>
+            <p>
+              <strong>Son güncelleme:</strong>
+              {{ dashboardData.lastUpdated | date: 'short' }}
+            </p>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    class="meeting-toast"
+    *ngIf="showMeetingToast"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="meeting-toast-icon" aria-hidden="true">✓</span>
+    <span class="meeting-toast-text">
+      <strong>{{ meetingToastMessage }}</strong>
+      <span class="meeting-toast-sub" *ngIf="meetingToastSubtext">{{
+        meetingToastSubtext
+      }}</span>
+    </span>
+    <button
+      type="button"
+      class="meeting-toast-close"
+      (click)="dismissMeetingToast()"
+      aria-label="Kapat"
+    >
+      ×
+    </button>
+  </div>
+
+  <div
+    class="meeting-modal-backdrop"
+    *ngIf="isMeetingModalOpen && selectedMeetingStudent"
+    (click)="closeMeetingModal()"
+    role="presentation"
+  ></div>
+
+  <div
+    class="meeting-modal"
+    *ngIf="isMeetingModalOpen && selectedMeetingStudent"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="meeting-modal-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="meeting-modal-header">
+      <div>
+        <span class="ai-hint-label">AI destekli öneri</span>
+        <h2 id="meeting-modal-title">Öğrenci Görüşme Planı</h2>
+        <p class="meeting-modal-subtitle">
+          Bu plan, öğrencinin konu ilerlemesi ve öğrenme ihtiyaçları dikkate alınarak
+          hazırlandı.
+        </p>
+        <p class="meeting-modal-note">
+          Görüşme gündemi ve takip adımları hazırlandı. Bu alan öğretmen için görüşme
+          planı hazırlar.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="meeting-modal-close"
+        (click)="closeMeetingModal()"
+        aria-label="Kapat"
+      >
+        ×
       </button>
     </header>
 
-    <section id="dashboard" class="stats-grid">
-      <div class="stat-card">
-        <h2>{{ dashboardData.studentCount }}</h2>
-        <p>Toplam Öğrenci</p>
-      </div>
-
-      <div class="stat-card">
-        <h2>{{ dashboardData.classAverage }}</h2>
-        <p>Sınıf Ortalaması</p>
-      </div>
-
-      <div class="stat-card">
-        <h2>{{ dashboardData.averageResponseTime }} sn</h2>
-        <p>Ortalama Yanıt Süresi</p>
-      </div>
-
-      <div class="stat-card">
-        <h2>{{ dashboardData.supportSuggestedCount }}</h2>
-        <p>Destek Önerilen Öğrenci</p>
-      </div>
-    </section>
-    <section
-  id="weekly-report"
-  class="weekly-report-section"
-  *ngIf="dashboardData.weeklyReport"
->
-
-  <div class="weekly-report-card">
-
-    <div class="weekly-report-header">
-      <h2>Haftalık AI Sınıf Raporu</h2>
-
-      <span class="trend-badge">
-        {{ dashboardData.weeklyReport.progressTrend }}
-      </span>
-    </div>
-
-    <p class="weekly-summary">
-      {{ dashboardData.weeklyReport.classSummary }}
-    </p>
-
-    <div class="weekly-grid">
-
-      <div class="weekly-box">
-        <h3>En Çok Zorlanılan Konu</h3>
-
-        <p>
-          {{ dashboardData.weeklyReport.mostDifficultTopic }}
-        </p>
-      </div>
-
-      <div class="weekly-box">
-        <h3>Önemli Bulgular</h3>
-
-        <ul>
-          <li
-            *ngFor="let finding of dashboardData.weeklyReport.keyFindings"
-          >
-            {{ finding }}
-          </li>
-        </ul>
-      </div>
-
-      <div class="weekly-box">
-        <h3>Önerilen Öğretmen Aksiyonları</h3>
-
-        <ul>
-          <li
-            *ngFor="let action of dashboardData.weeklyReport.recommendedTeacherActions"
-          >
-            {{ action }}
-          </li>
-        </ul>
-      </div>
-
-      <div class="weekly-box">
-        <h3>Gelecek Hafta Odak</h3>
-
-        <div class="focus-tags">
-
-          <span
-            class="focus-tag"
-            *ngFor="let focus of dashboardData.weeklyReport.nextWeekFocus"
-          >
-            {{ focus }}
-          </span>
-
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-
-</section>
-
-    <section id="class-summary" class="bottom-grid">
-      <div class="action-card">
-        <h2>Sınıf Özeti</h2>
-        <p><strong>En çok zorlanılan konu:</strong> {{ dashboardData.mostDifficultTopic }}</p>
-        <p><strong>İleri seviye soruya hazır öğrenci:</strong> {{ dashboardData.challengeReadyCount }}</p>
-      </div>
-      <section class="meet-students-section" *ngIf="dashboardData.students?.length">
-
-  <div class="section-title">
-    <h2>Destek Görüşmesi Önerilen Öğrenciler</h2>
-    <p>Destek ihtiyacı belirlenen öğrenciler için birebir görüşme planlanabilir.</p>
-  </div>
-
-  <div class="meet-student-list">
-
-    <div
-      class="meet-student-card"
-      *ngFor="let student of dashboardData.students"
-    >
-      <div class="meet-student-info">
-        <h3>{{ student.name }}</h3>
-
-        <p><strong>Ders:</strong> {{ student.lesson }}</p>
-        <p><strong>Konu:</strong> {{ student.topic }}</p>
-        <p><strong>Sebep:</strong> {{ student.reason }}</p>
-        <p><strong>Önerilen Süre:</strong> {{ student.suggestedDuration }} dk</p>
-      </div>
-
-      <div class="meet-actions">
-        <span class="priority-badge">
-          {{ student.priority }}
-        </span>
-
-        <button (click)="planMeet(student)">
-          Meet Planla
-        </button>
-      </div>
-    </div>
-
-  </div>
-
-</section>
-
-      <div class="distribution-card">
-        <h2>{{ dashboardData.frontendHints.supportDistributionTarget }}</h2>
-
-        <div
-          class="distribution-item"
-          *ngFor="let item of dashboardData.supportDistribution"
-        >
-          <span>{{ item.label }}</span>
-          <strong>%{{ item.percentage }}</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="main-grid">
-
-      <div class="students-section">
-        <div class="section-title">
-          <h2>{{ dashboardData.frontendHints.recommendedActionsTarget }}</h2>
-          <p>Agent analizlerine göre öğretmen için önerilen sınıf içi aksiyonlar.</p>
-        </div>
-
-        <div class="student-grid">
-          <div class="student-card" *ngFor="let action of dashboardData.recommendedActions">
-            <div class="student-info">
-              <p>{{ action }}</p>
-            </div>
+    <div class="meeting-modal-body">
+      <section class="meeting-student-summary">
+        <h3>Öğrenci Bilgisi</h3>
+        <div class="meeting-info-grid">
+          <div class="meeting-info-item">
+            <span>Öğrenci</span>
+            <strong>{{ selectedMeetingStudent.studentName }}</strong>
+          </div>
+          <div class="meeting-info-item">
+            <span>Ders</span>
+            <strong>{{ selectedMeetingStudent.lesson }}</strong>
+          </div>
+          <div class="meeting-info-item">
+            <span>Konu</span>
+            <strong>{{ selectedMeetingStudent.topic }}</strong>
+          </div>
+          <div class="meeting-info-item">
+            <span>Öncelik</span>
+            <strong>{{ formatPriority(selectedMeetingStudent.priority) }}</strong>
+          </div>
+          <div class="meeting-info-item">
+            <span>Öğrenme modu</span>
+            <strong>{{ getMeetingLearningMode() }}</strong>
           </div>
         </div>
-      </div>
+      </section>
 
-      <aside id="analytics" class="agent-panel">
-        <h2>{{ dashboardData.frontendHints.agentFeedTarget }}</h2>
+      <section class="meeting-section">
+        <h3>Görüşme Amacı</h3>
+        <p>{{ getMeetingPurpose() }}</p>
+      </section>
 
-        <div
-          class="agent-card"
-          *ngFor="let feed of dashboardData.puqAiAgentFeed"
-        >
-          <span>{{ feed.title }}</span>
-          <p>{{ feed.message }}</p>
-          <small>{{ feed.source }}</small>
+      <section class="meeting-section meeting-schedule-section">
+        <h3>Görüşme Zamanı</h3>
+        <p class="meeting-schedule-hint">
+          Önerilen zaman aralığı:
+          {{ meetingPlanDraft?.recommendedDateLabel ?? 'Yarın' }} ·
+          {{ meetingPlanDraft?.recommendedTime ?? '10:00' }}
+        </p>
+        <div class="meeting-schedule-grid">
+          <label class="meeting-schedule-field">
+            <span>Tarih</span>
+            <input
+              type="date"
+              class="meeting-date-input"
+              [min]="getMinMeetingDate()"
+              [value]="selectedMeetingDate"
+              (change)="onMeetingDateChange($any($event.target).value)"
+            />
+          </label>
+          <label class="meeting-schedule-field">
+            <span>Saat</span>
+            <select
+              class="meeting-time-select"
+              [value]="selectedMeetingTime"
+              (change)="selectMeetingTime($any($event.target).value)"
+            >
+              <option *ngFor="let time of meetingTimeOptions" [value]="time">
+                {{ time }}
+              </option>
+            </select>
+          </label>
         </div>
-      </aside>
+        <div class="meeting-duration-block">
+          <span class="meeting-duration-label">Süre</span>
+          <div class="meeting-duration-pills">
+          <button
+            type="button"
+            class="duration-pill"
+            [class.duration-pill--active]="selectedDurationMinutes === 10"
+            (click)="selectMeetingDuration(10)"
+          >
+            10 dakika
+          </button>
+          <button
+            type="button"
+            class="duration-pill"
+            [class.duration-pill--active]="selectedDurationMinutes === 15"
+            (click)="selectMeetingDuration(15)"
+          >
+            15 dakika
+          </button>
+          </div>
+        </div>
+        <p class="meeting-schedule-summary">
+          Seçilen zaman: {{ getSelectedScheduleLabel() }} · {{ selectedMeetingTime }} ·
+          {{ selectedDurationMinutes }} dk
+        </p>
+      </section>
 
-    </section>
+      <section class="meeting-section">
+        <h3>Görüşme Gündemi</h3>
+        <ol class="meeting-agenda-list">
+          <li *ngFor="let item of getMeetingAgenda()">{{ item }}</li>
+        </ol>
+      </section>
 
-  </main>
+      <section class="meeting-section">
+        <h3>Öğretmen Notu</h3>
+        <p class="meeting-teacher-note">{{ getMeetingTeacherNote() }}</p>
+      </section>
 
+      <section class="meeting-section">
+        <h3>Önerilen Aksiyonlar</h3>
+        <ul class="meeting-action-list">
+          <li *ngFor="let action of getMeetingActions()">{{ action }}</li>
+        </ul>
+      </section>
+    </div>
+
+    <footer class="meeting-modal-actions">
+      <button type="button" class="secondary-button" (click)="closeMeetingModal()">
+        Kapat
+      </button>
+      <button type="button" class="secondary-button" (click)="copyMeetingNote()">
+        Notu Kopyala
+      </button>
+      <button type="button" class="primary-button" (click)="saveMeetingPlan()">
+        Planı Kaydet
+      </button>
+    </footer>
+  </div>
 </div>

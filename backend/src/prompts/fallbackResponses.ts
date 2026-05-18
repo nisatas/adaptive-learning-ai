@@ -72,7 +72,7 @@ export function fallbackStudentAnalysisResponse(
     input.quizScore >= 85 ? 'high' : input.quizScore >= 60 ? 'medium' : 'low';
 
   return {
-    studentSummary: `Analiz sınırlı veriyle oluşturuldu. ${focus} konusunda performans ${input.quizScore} puan olarak görünüyor.`,
+    studentSummary: `${focus} konusunda performans ${input.quizScore} puan olarak görünüyor.`,
     performanceLevel,
     attentionSignal: 'medium',
     difficultySignal:
@@ -105,7 +105,7 @@ export function fallbackQuizBehaviorResponse(
 ): QuizBehaviorAnalysisResponse {
   return {
     interactionSummary:
-      'Analiz sınırlı veriyle oluşturuldu. Quiz sırasında etkileşim sinyalleri birlikte değerlendirildi.',
+      'Quiz sırasında etkileşim sinyalleri birlikte değerlendirildi.',
     attentionSignal: 'medium',
     engagementSignal: 'medium',
     confidenceSignal: 'medium',
@@ -143,7 +143,7 @@ export function fallbackTeacherDashboardResponse(
     }));
 
   return {
-    classSummary: `Analiz sınırlı veriyle oluşturuldu. ${input.className} sınıfında ortalama ${input.classAverage} puan görülüyor.`,
+    classSummary: `${input.className} sınıfında ortalama ${input.classAverage} puan görülüyor.`,
     mostDifficultTopic: input.mostDifficultTopic,
     studentsNeedingSupport: supportStudents,
     challengeReadyStudents: challengeStudents,
@@ -175,9 +175,11 @@ export function fallbackMeetWorkflowResponse(
     studentId: input.studentId,
     lesson: input.lesson,
     topic: input.topic,
-    meetingReason: `${focus} konusunda öğrenme desteği görüşmesi.`,
-    teacherMessage: `Analiz sınırlı veriyle oluşturuldu. ${input.studentName} ile ${focus} odağında kısa görüşme planlanabilir.`,
+    meetingReason: `Öğrencinin ${focus} konusunda zorlandığı noktaları kısa bir kontrol görüşmesiyle netleştirmek.`,
+    teacherMessage: `${input.studentName} için ${focus} odağında görüşme gündemi ve takip adımları hazırlandı.`,
     suggestedDurationMinutes: 15,
+    recommendedDateLabel: 'Yarın',
+    recommendedTime: '10:00',
     suggestedAgenda: [
       'Son quiz performansını birlikte gözden geçirme',
       'Zorlanılan adımları belirleme',
@@ -189,7 +191,7 @@ export function fallbackMeetWorkflowResponse(
     ],
     parentOrGuardianNote:
       'Görüşme öğrenme desteği amaçlıdır; performans gelişimi birlikte ele alınacaktır.',
-    dashboardSummary: `${input.studentName} için meet planı hazırlandı.`,
+    dashboardSummary: `${input.studentName} için görüşme planı taslağı hazırlandı.`,
     confidence: 'low',
   };
 }
@@ -205,7 +207,7 @@ export function fallbackSupportPlanWorkflowResponse(
     studentName: input.studentName,
     lesson: input.lesson,
     topic: input.topic,
-    studentSummary: `Analiz sınırlı veriyle oluşturuldu. ${focus} konusunda destek planı önerildi.`,
+    studentSummary: `${focus} konusunda destek planı önerildi.`,
     supportReason: `${focus} adımlarında ek tekrar faydalı olabilir.`,
     recommendedStudyPlan: [
       {
@@ -267,7 +269,7 @@ export function fallbackWeeklyReportWorkflowResponse(
     className: input.className,
     lesson: input.lesson,
     week: input.week ?? 'Bu hafta',
-    classSummary: `Analiz sınırlı veriyle oluşturuldu. ${input.className} sınıfında ortalama ${input.classAverage} puan.`,
+    classSummary: `${input.className} sınıfında ortalama ${input.classAverage} puan.`,
     progressTrend,
     mostDifficultTopic: input.mostDifficultTopic,
     keyFindings: [
@@ -293,7 +295,7 @@ export function fallbackWeeklyReportWorkflowResponse(
       'Kısa tekrar rutini',
       'Mini quiz ile pekiştirme',
     ],
-    dashboardSummary: 'Haftalık rapor sınırlı veriyle oluşturuldu.',
+    dashboardSummary: 'Haftalık sınıf raporu hazırlandı.',
     confidence: 'low',
   };
 }

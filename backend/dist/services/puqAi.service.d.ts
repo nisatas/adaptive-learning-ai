@@ -14,7 +14,7 @@ export declare class PuqAiService {
      * Generic Puq.ai JSON/text completion for modular prompts.
      * Returns null when config missing or request fails — callers use fallback responses.
      */
-    completePrompt(systemPrompt: string, userPrompt: string, maxTokens?: number): Promise<string | null>;
+    completePrompt(systemPrompt: string, userPrompt: string, maxTokens?: number, contextLabel?: string): Promise<string | null>;
     generateTeacherInsightReport(input: TeacherInsightInput): Promise<PuqAiInsightResult>;
     private buildResult;
     private callPuqAiChat;

@@ -12,7 +12,7 @@ export class StudentService {
       supportNeed: 'Odak desteği',
       latestQuizScore: 45,
       status: 'Kişiselleştirilmiş deneyim hazır',
-      aiObservation: 'Uzun içeriklerde dikkat kaybı gözlemlendi.'
+      aiObservation: 'Uzun içeriklerde öğrenme temposu yavaşladı; sadeleştirilmiş sunum önerilir.'
     },
     {
       id: 2,

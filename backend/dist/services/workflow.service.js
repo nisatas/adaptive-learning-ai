@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeMeetWorkflowPayload = normalizeMeetWorkflowPayload;
 exports.triggerStudentMeetWorkflow = triggerStudentMeetWorkflow;
 const env_1 = require("../config/env");
+const puqAiClient_1 = require("../utils/puqAiClient");
 const inMemoryStore_1 = require("../data/inMemoryStore");
 const mockData_1 = require("../data/mockData");
 const SUPPORTED_WORKFLOW_TYPE = 'student_meet_request';
@@ -90,16 +91,17 @@ function buildMeetNotification(payload) {
 }
 async function callPuqMeetWorkflow(payload) {
     const url = env_1.env.puqAi.meetWorkflowUrl.trim();
+    if ((0, env_1.isDemoModeEnabled)()) {
+        console.log('[workflow] meet webhook skipped: DEMO_MODE=true');
+        return { ok: false, skipped: true, reason: 'demo_mode' };
+    }
     if (!(0, env_1.isMeetWorkflowConfigured)()) {
-        console.log('[workflow] PUQ_MEET_WORKFLOW_URL missing; workflowSkipped=true');
+        console.warn('[workflow] PUQ_MEET_WORKFLOW_URL missing; webhook skipped');
         return { ok: false, skipped: true, reason: 'missing_url' };
     }
     const headers = {
-        'Content-Type': 'application/json',
+        ...(0, puqAiClient_1.buildPuqAiHeaders)(),
     };
-    if (env_1.env.puqAi.apiKey) {
-        headers.Authorization = `Bearer ${env_1.env.puqAi.apiKey}`;
-    }
     const webhookBody = {
         workflowType: SUPPORTED_WORKFLOW_TYPE,
         teacherName: payload.teacherName,
@@ -119,15 +121,16 @@ async function callPuqMeetWorkflow(payload) {
             body: JSON.stringify(webhookBody),
         });
         if (!response.ok) {
-            console.log(`[workflow] meet webhook failed status=${response.status}; workflowSkipped=false`);
+            const bodyText = await response.text().catch(() => '');
+            console.error(`[workflow] meet webhook failed status=${response.status} body=${bodyText.slice(0, 200)}`);
             return { ok: false, skipped: false, reason: `http_${response.status}` };
         }
-        console.log('[workflow] meet webhook accepted');
+        console.log('[workflow] Puq.ai meet workflow success');
         return { ok: true, skipped: false };
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'unknown_error';
-        console.log(`[workflow] meet webhook error; workflowSkipped=false reason=${message}`);
+        console.error(`[workflow] meet webhook network error: ${message}`);
         return { ok: false, skipped: false, reason: 'network_error' };
     }
 }
@@ -146,7 +149,7 @@ async function triggerStudentMeetWorkflow(raw) {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'unknown';
-        console.log(`[workflow] trigger error; demo fallback used reason=${message}`);
+        console.error(`[workflow] trigger error (notification still created): ${message}`);
         return { response: SUCCESS_RESPONSE, httpStatus: 200 };
     }
 }

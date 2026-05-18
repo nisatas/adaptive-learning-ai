@@ -174,13 +174,18 @@ class PuqAiService {
      * Generic Puq.ai JSON/text completion for modular prompts.
      * Returns null when config missing or request fails — callers use fallback responses.
      */
-    async completePrompt(systemPrompt, userPrompt, maxTokens = 300) {
-        if (!this.isConfigured()) {
+    async completePrompt(systemPrompt, userPrompt, maxTokens = 300, contextLabel = 'completePrompt') {
+        if ((0, env_1.isDemoModeEnabled)()) {
+            console.log(`[Puq.ai] ${contextLabel} skipped: DEMO_MODE=true`);
             return null;
         }
+        if (!this.isConfigured()) {
+            console.warn(`[Puq.ai] ${contextLabel} skipped: missing PUQ_AI_* configuration`);
+            return null;
+        }
+        const { chatEndpoint, model } = env_1.env.puqAi;
+        const url = (0, puqAiClient_1.buildPuqAiUrl)(chatEndpoint);
         try {
-            const { chatEndpoint, model } = env_1.env.puqAi;
-            const url = (0, puqAiClient_1.buildPuqAiUrl)(chatEndpoint);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: (0, puqAiClient_1.buildPuqAiHeaders)(),
@@ -195,12 +200,22 @@ class PuqAiService {
                 }),
             });
             if (!response.ok) {
+                const errorDetails = (0, puqAiClient_1.mapPuqAiHttpError)(response.status);
+                console.error(`[Puq.ai] ${contextLabel} HTTP ${response.status}: ${errorDetails.safeMessage}`);
                 return null;
             }
             const data = await response.json();
-            return (0, puqAiClient_1.extractPuqAiContent)(data);
+            const content = (0, puqAiClient_1.extractPuqAiContent)(data);
+            if (!content) {
+                console.warn(`[Puq.ai] ${contextLabel} empty content in response (parse failed)`);
+                return null;
+            }
+            console.log(`[Puq.ai] ${contextLabel} success`);
+            return content;
         }
-        catch {
+        catch (error) {
+            const errorDetails = (0, puqAiClient_1.classifyPuqAiError)(error, `${contextLabel} request failed.`);
+            console.error(`[Puq.ai] ${contextLabel} ${errorDetails.errorType}: ${errorDetails.safeMessage}`);
             return null;
         }
     }
@@ -311,7 +326,7 @@ class PuqAiService {
             slowQuestionIds: input.slowQuestionIds,
             hesitationCount: input.hesitationCount,
             mostDifficultTopic: input.mostDifficultTopic,
-        }), 300);
+        }), 300, 'teacherInsightReport');
         if (!content) {
             throw new puqAiClient_1.PuqAiHttpError(502);
         }

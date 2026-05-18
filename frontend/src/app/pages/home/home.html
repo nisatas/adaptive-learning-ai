@@ -1,162 +1,151 @@
 <div class="home-page">
+  <div class="home-container">
+    <header class="home-header">
+      <a class="brand" routerLink="/" aria-label="NeuroAdapt ana sayfa">
+        <img src="/assets/logo/logo1.png" alt="" width="40" height="40" />
+        <span>NeuroAdapt</span>
+      </a>
 
-  <header class="home-header">
+      <div class="header-actions">
+        <button type="button" routerLink="/student-panel/stu-1" class="btn btn-outline">
+          Öğrenci Girişi
+        </button>
+        <button type="button" routerLink="/teacher-dashboard" class="btn btn-primary">
+          Öğretmen Girişi
+        </button>
+      </div>
+    </header>
 
-    <div class="brand">
-      <img src="/assets/logo/logo1.png" alt="NeuroAdapt Logo" />
-      <span>NeuroAdapt</span>
-    </div>
+    <main class="home-main">
+      <section class="hero" aria-labelledby="home-hero-title">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Her öğrenci özeldir.</p>
 
-    <div class="header-actions">
-      <button routerLink="/student-panel/stu-1" class="login-button">
-        Öğrenci Girişi
-      </button>
+          <h1 id="home-hero-title" class="hero-title">
+            Öğrenme de<br />
+            <span class="hero-title-accent">öyle olmalı.</span>
+          </h1>
 
-      <button routerLink="/teacher-dashboard" class="primary-button">
-        Öğretmen Girişi
-      </button>
-    </div>
+          <p class="hero-description">
+            NeuroAdapt, her öğrencinin öğrenme yolculuğunu anlayan ve ona göre uyum
+            sağlayan akıllı bir öğrenme platformudur.
+          </p>
 
-  </header>
-
-  <main>
-
-    <section class="hero-section">
-
-      <div class="hero-text">
-        <p class="eyebrow">Her öğrenci özeldir.</p>
-
-        <h1>
-          Öğrenme de <br />
-          <span>öyle olmalı.</span>
-        </h1>
-
-        <p class="hero-description">
-          NeuroAdapt, her öğrencinin öğrenme yolculuğunu anlayan
-          ve ona göre uyum sağlayan akıllı bir öğrenme platformudur.
-        </p>
-
-        <div class="hero-features">
-          <div>
-            <strong>Kişiye Özel Öğrenme</strong>
-            <span>Her öğrenciye özel içerik ve öneriler</span>
-          </div>
-
-          <div>
-            <strong>Daha İyi Anlama</strong>
-            <span>Doğru yönlendirme ile kalıcı öğrenme</span>
-          </div>
-
-          <div>
-            <strong>Güvenli ve Etkili</strong>
-            <span>Modern teknoloji ile güvenli öğrenme</span>
+          <div class="hero-features">
+            <article class="hero-feature">
+              <h3>Kişiye Özel Öğrenme</h3>
+              <p>Her öğrenciye özel içerik ve öneriler</p>
+            </article>
+            <article class="hero-feature">
+              <h3>Daha İyi Anlama</h3>
+              <p>Doğru yönlendirme ile kalıcı öğrenme</p>
+            </article>
+            <article class="hero-feature">
+              <h3>Güvenli ve Etik</h3>
+              <p>Modern teknoloji güvenli öğrenme</p>
+            </article>
           </div>
         </div>
-      </div>
 
-      <div class="hero-visual">
-        <img src="/assets/home/mascot-trio.png" alt="Öğrenci karakterleri" />
-      </div>
+        <div class="hero-visual" aria-hidden="true">
+          <img
+            class="hero-mascot"
+            src="/assets/home/mascot-trio.png"
+            alt=""
+            width="680"
+            height="545"
+          />
+        </div>
+      </section>
 
-    </section>
+      <section class="trust-section" aria-labelledby="trust-heading">
+        <img
+          class="trust-bg"
+          src="/assets/home/renkli-1.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <div class="trust-content">
+          <p class="trust-eyebrow">VELİLER İÇİN İÇİNİZ RAHAT OLSUN</p>
+          <h2 id="trust-heading" class="trust-title">
+            Güvenli, şeffaf ve<br />
+            sorumlu bir öğrenme ortamı.
+          </h2>
+          <div class="trust-cards">
+            <article class="trust-card">
+              <h3>Güvenli Öğrenme Ortamı</h3>
+              <p>Verileriniz en üst düzey güvenlik önlemleriyle korunur.</p>
+            </article>
+            <article class="trust-card">
+              <h3>Etik Yapay Zekâ Desteği</h3>
+              <p>Yapay zekâ öğrenciyi yönlendirmek için kullanılır.</p>
+            </article>
+            <article class="trust-card">
+              <h3>İlerleme Görünürlüğü</h3>
+              <p>Net raporlarla gelişim süreci takip edilebilir.</p>
+            </article>
+          </div>
+        </div>
+      </section>
 
-   <section class="trust-section">
+      <section class="features-section" aria-labelledby="features-heading">
+        <p class="features-eyebrow">Öğrenmeyi daha etkili hale getiren özellikler</p>
+        <h2 id="features-heading" class="features-title">Akıllı araçlar, güçlü öğrenme.</h2>
 
-  <img
-    class="trust-background"
-    src="/assets/home/renkli-1.png"
-    alt="Veli ve öğrenci"
-  />
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-card-media">
+              <img src="/assets/home/dortlu1.png" alt="" />
+            </div>
+            <div class="feature-card-body">
+              <h3>Uyarlanabilir Testler</h3>
+              <p>Öğrencinin seviyesine göre sorular otomatik olarak şekillenir.</p>
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-card-media">
+              <img src="/assets/home/dortlu2.png" alt="" />
+            </div>
+            <div class="feature-card-body">
+              <h3>Öğrenci İlerleme Analizi</h3>
+              <p>Performansı detaylı analizlerle izleyin ve gelişimi destekleyin.</p>
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-card-media">
+              <img src="/assets/home/dortlu3.png" alt="" />
+            </div>
+            <div class="feature-card-body">
+              <h3 class="feature-title-accent">Akıllı Öneriler</h3>
+              <p>Yapay zekâ destekli önerilerle öğrencinin ihtiyaçına odaklanın.</p>
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-card-media">
+              <img src="/assets/home/dortlu4.png" alt="" />
+            </div>
+            <div class="feature-card-body">
+              <h3>Erişilebilir Öğrenme Araçları</h3>
+              <p>Her yerden, her cihazla kolayca erişilebilen içerikler.</p>
+            </div>
+          </article>
+        </div>
+      </section>
 
-  <div class="trust-overlay">
-
-    <span>VELİLER İÇİN İÇİNİZ RAHAT OLSUN</span>
-
-    <h2>
-      Güvenli, şeffaf ve <br />
-      sorumlu bir öğrenme ortamı.
-    </h2>
-
-    <div class="trust-grid">
-
-      <div>
-        <h3>Güvenli Öğrenme Ortamı</h3>
-        <p>
-          Verileriniz en üst düzey güvenlik önlemleriyle korunur.
-        </p>
-      </div>
-
-      <div>
-        <h3>Etik Yapay Zekâ Desteği</h3>
-        <p>
-          Yapay zekâ öğrenciyi yönlendirmek için kullanılır.
-        </p>
-      </div>
-
-      <div>
-        <h3>İlerleme Görünürlüğü</h3>
-        <p>
-          Net raporlarla gelişim süreci takip edilebilir.
-        </p>
-      </div>
-
-    </div>
-
+      <section class="cta-section" aria-labelledby="cta-heading">
+        <img
+          class="cta-bg"
+          src="/assets/home/renkli-2.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <div class="cta-content">
+          <h2 id="cta-heading">Bugün başlayın, yarın farkı görün!</h2>
+          <p>
+            Öğrenciler için daha iyi bir öğrenme deneyimi NeuroAdapt ile başlar.
+          </p>
+        </div>
+      </section>
+    </main>
   </div>
-
-</section>
-
-    <section class="features-section">
-      <span>Öğrenmeyi daha etkili hale getiren özellikler</span>
-
-      <h2>Akıllı araçlar, güçlü öğrenme.</h2>
-
-      <div class="features-grid">
-
-        <article class="feature-card">
-          <img src="/assets/home/dortlu1.png" alt="Uyarlanabilir testler" />
-          <h3>Uyarlanabilir Testler</h3>
-          <p>Öğrencinin seviyesine göre sorular otomatik olarak şekillenir.</p>
-        </article>
-
-        <article class="feature-card">
-          <img src="/assets/home/dortlu2.png" alt="Öğrenci ilerleme analizi" />
-          <h3>Öğrenci İlerleme Analizi</h3>
-          <p>Performansı detaylı analizlerle izleyin ve gelişimi destekleyin.</p>
-        </article>
-
-        <article class="feature-card">
-          <img src="/assets/home/dortlu3.png" alt="Akıllı öneriler" />
-          <h3>Akıllı Öneriler</h3>
-          <p>Yapay zekâ destekli önerilerle öğrencinin ihtiyacına odaklanın.</p>
-        </article>
-
-        <article class="feature-card">
-          <img src="/assets/home/dortlu4.png" alt="Erişilebilir öğrenme araçları" />
-          <h3>Erişilebilir Öğrenme Araçları</h3>
-          <p>Her yerden, her cihazla kolayca erişilebilen içerikler.</p>
-        </article>
-
-      </div>
-    </section>
-
-    <section class="cta-section">
-
-  <img
-    class="cta-background"
-    src="/assets/home/renkli-2.png"
-    alt="CTA Banner"
-  />
-
-  <div class="cta-overlay">
-    <h2>Bugün başlayın, yarın farkı görün!</h2>
-
-    <p>
-      Öğrenciler için daha iyi bir öğrenme deneyimi NeuroAdapt ile başlar.
-    </p>
-  </div>
-
-</section>
-  </main>
-
 </div>

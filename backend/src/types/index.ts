@@ -54,9 +54,27 @@ export interface QuizAnswerSubmission {
   skipped?: boolean;
 }
 
+export interface QuizAnswerDetailMeta {
+  questionId: string;
+  topic: string;
+  isCorrect: boolean;
+  timeSpentSeconds: number;
+}
+
+export interface QuizSubmissionMeta {
+  topicId: string;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  score: number;
+  answerDetails: QuizAnswerDetailMeta[];
+}
+
 export interface QuizSubmissionRequest {
   studentId: string;
   answers: QuizAnswerSubmission[];
+  /** Paragraf / konu bazlı mini quiz gönderiminde kullanılır */
+  quizMeta?: QuizSubmissionMeta;
 }
 
 /** Internal — includes question ids for adaptation engine */
@@ -94,7 +112,18 @@ export interface UiSettings {
   reduceDistractions: boolean;
   showProgressFocus: boolean;
   showChallengeQuestions: boolean;
+  simplifiedLayout?: boolean;
+  increasedLineHeight?: boolean;
+  highlightKeywords?: boolean;
 }
+
+export type LearningMode = 'STANDARD' | 'PERSONALIZED';
+
+export type SupportProfile =
+  | 'focus_support'
+  | 'reading_support'
+  | 'balanced_support'
+  | null;
 
 export type InternalLearningProfile =
   | 'FOCUS_SUPPORT'
@@ -107,6 +136,10 @@ export interface AdaptationResult {
   internalProfile: InternalLearningProfile;
   uiSettings: UiSettings;
   studentMessage: string;
+  learningMode: LearningMode;
+  learningModeLabel: string;
+  supportProfile: SupportProfile;
+  recommendation: string;
 }
 
 export interface QuizResultResponse {
@@ -125,6 +158,11 @@ export interface QuizResultResponse {
   studentMessage: string;
   uiSettings: UiSettings;
   behaviorSignals: BehaviorSignalsPublic;
+  learningMode: LearningMode;
+  learningModeLabel: string;
+  supportProfile: SupportProfile;
+  recommendation: string;
+  topicId?: string;
 }
 
 export interface StoredQuizResult extends QuizResultResponse {
@@ -420,6 +458,8 @@ export interface WorkflowTriggerRequest {
   topic?: string;
   reason?: string;
   suggestedDuration?: number;
+  selectedDate?: string;
+  selectedTime?: string;
   priority?: WorkflowPriority | string;
 }
 
@@ -441,6 +481,9 @@ export interface StudentNotification {
   lesson: string;
   topic: string;
   duration: number;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  dateDisplayLabel?: string;
   status: StudentNotificationStatus;
 }
 
@@ -477,4 +520,8 @@ export interface StudentDashboardResponse {
   todayRecommendation: StudentDashboardTodayRecommendation;
   uiSettings: UiSettings;
   notifications: StudentNotification[];
+  learningMode?: LearningMode;
+  learningModeLabel?: string;
+  supportProfile?: SupportProfile;
+  recommendation?: string;
 }

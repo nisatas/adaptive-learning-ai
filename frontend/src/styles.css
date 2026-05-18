@@ -1,1 +1,633 @@
-/* You can add global styles to this file, and also import other style files */
+/* NeuroAdapt — global design tokens & typography */
+
+:root {
+  --font-main: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-md: 1.1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-page-title: clamp(1.8rem, 3vw, 3rem);
+  --text-hero: clamp(2.2rem, 5vw, 4.5rem);
+  --text-section: clamp(1.35rem, 2vw, 1.6rem);
+  --text-card-title: clamp(1.05rem, 1.5vw, 1.25rem);
+
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-highlight-yellow: #fef3c7;
+  --color-highlight-yellow-text: #92400e;
+  --color-highlight-yellow-soft: #fffbeb;
+
+  --na-green-dark: #0c3b20;
+  --na-green: #004b24;
+  --na-teal: #10aab3;
+  --na-text: var(--color-text-main);
+  --na-text-muted: var(--color-text-muted);
+  --na-border: #e5e7eb;
+  --na-card-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --na-radius-lg: 20px;
+  --na-radius-xl: 28px;
+  --na-page-bg: #ffffff;
+
+  --line-height-body: 1.7;
+  --line-height-tight: 1.1;
+  --line-height-reading: 1.85;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--font-main);
+  font-size: var(--text-base);
+  line-height: var(--line-height-body);
+  color: var(--color-text-main);
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Teacher / Student panel: tek scroll — body kilidi (dashboard.ts ile açılır) */
+html.panel-scroll-lock,
+html.panel-scroll-lock body {
+  height: 100%;
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* —— Typography scale —— */
+
+.type-hero {
+  font-size: var(--text-hero);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-text-main);
+}
+
+.type-page-title {
+  font-size: var(--text-page-title);
+  font-weight: 800;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+  color: var(--color-text-main);
+}
+
+.type-section-title {
+  font-size: var(--text-section);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-main);
+}
+
+.type-card-title {
+  font-size: var(--text-card-title);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text-main);
+}
+
+.type-body {
+  font-size: var(--text-base);
+  line-height: var(--line-height-body);
+  color: var(--color-text-main);
+}
+
+.type-caption {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.type-badge,
+.eyebrow,
+.card-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* —— Keyword highlight (focus / balanced) —— */
+
+.keyword-highlight,
+.focus-highlight {
+  background: var(--color-highlight-yellow);
+  color: var(--color-highlight-yellow-text);
+  border-radius: 6px;
+  padding: 0 0.2rem;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.support-profile--balanced-support .keyword-highlight {
+  background: var(--color-highlight-yellow-soft);
+  color: #a16207;
+}
+
+/* —— Kişiselleştirilmiş mod: reading_support —— */
+
+.support-profile--reading-support .readable-block,
+.support-profile--reading-support .paragraph-box p,
+.support-profile--reading-support .lesson-topic-block p,
+.support-profile--reading-support .sample-paragraph-card p {
+  font-size: 1.15rem;
+  line-height: var(--line-height-reading);
+}
+
+.support-profile--reading-support .question-title,
+.support-profile--reading-support .sample-question {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.support-profile--reading-support .option-card,
+.support-profile--reading-support .option-text,
+.support-profile--reading-support .sample-option {
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.support-profile--reading-support .paragraph-box,
+.support-profile--reading-support .lesson-topic-card,
+.support-profile--reading-support .sample-paragraph-card {
+  padding: 1.35rem 1.5rem;
+}
+
+/* —— Kişiselleştirilmiş mod: focus_support —— */
+
+.support-profile--focus-support .readable-block,
+.support-profile--focus-support .type-body {
+  font-size: var(--text-base);
+  line-height: 1.65;
+}
+
+.support-profile--focus-support .primary-button,
+.support-profile--focus-support .lesson-quiz-cta,
+.support-profile--focus-support .next-button {
+  font-size: var(--text-md);
+  font-weight: 700;
+  padding: 0.85rem 1.5rem;
+}
+
+/* —— Kişiselleştirilmiş mod: balanced_support —— */
+
+.support-profile--balanced-support .readable-block {
+  font-size: var(--text-md);
+  line-height: 1.75;
+}
+
+.student-panel--personalized .lesson-steps-card,
+.quiz-page--personalized .quiz-mode-card {
+  border-color: #b8e6c8;
+}
+
+/* —— Panel layout & shared sidebar (Teacher + Student) —— */
+
+:root {
+  --panel-sidebar-width: 288px;
+  --panel-layout-max: 1480px;
+  --panel-layout-gap: 32px;
+}
+
+.panel-page-root,
+.teacher-panel-layout,
+.student-panel-layout {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.panel-layout,
+.teacher-shell,
+.student-shell {
+  display: grid;
+  grid-template-columns: var(--panel-sidebar-width) minmax(0, 1fr);
+  gap: var(--panel-layout-gap);
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: min(var(--panel-layout-max), calc(100% - 48px));
+  max-width: var(--panel-layout-max);
+  margin: 0 auto;
+  padding: 16px 0 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.panel-main,
+.teacher-main-column,
+.student-main-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.teacher-header,
+.student-header {
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+  padding: 12px 0 16px;
+  margin: 0;
+  background: #ffffff;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.teacher-content,
+.student-content {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-sidebar,
+.teacher-sidebar,
+.student-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--panel-sidebar-width);
+  min-width: var(--panel-sidebar-width);
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  align-self: stretch;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+  position: relative;
+  top: auto;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.app-sidebar .sidebar-nav,
+.teacher-sidebar .sidebar-nav,
+.student-sidebar .sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-brand img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sidebar-brand-text {
+  min-width: 0;
+}
+
+.sidebar-brand-title,
+.sidebar-brand strong {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #064e3b;
+  line-height: 1.15;
+}
+
+.sidebar-brand-subtitle,
+.sidebar-brand span {
+  display: block;
+  font-size: 0.88rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.sidebar-profile-card,
+.teacher-profile {
+  background: #f8fffc;
+  border: 1px solid #d1fae5;
+  border-radius: 22px;
+  padding: 24px 18px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.sidebar-avatar,
+.teacher-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  background: #006b3f;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.sidebar-profile-name,
+.sidebar-profile-card h3,
+.teacher-profile h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #064e3b;
+}
+
+.sidebar-profile-role,
+.sidebar-profile-card p,
+.teacher-profile p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.sidebar-class-badge,
+.sidebar-profile-card > span,
+.teacher-profile > span {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-nav button,
+.sidebar-nav .sidebar-nav-item {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.sidebar-nav button:hover:not(:disabled),
+.sidebar-nav .sidebar-nav-item:hover:not(:disabled) {
+  background: #f0fdfa;
+}
+
+.sidebar-nav button.active,
+.sidebar-nav .sidebar-nav-item.active {
+  background: #ccfbf1;
+  border-color: #99f6e4;
+  color: #064e3b;
+}
+
+.sidebar-nav button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sidebar-subnav,
+.submenu {
+  margin: 4px 0 4px 12px;
+  padding-left: 14px;
+  border-left: 1px solid #d1fae5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-subnav-item,
+.submenu-title,
+.submenu.nested button {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.submenu-title,
+.submenu-title.sidebar-subnav-item {
+  color: #064e3b;
+}
+
+.sidebar-subnav-item:hover:not(:disabled),
+.submenu-title:hover,
+.submenu.nested button:hover:not(:disabled) {
+  background: #f0fdfa;
+}
+
+.submenu.nested button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.submenu-title.active {
+  background: #f0fdfa;
+  color: #064e3b;
+}
+
+.submenu.nested .topic-link.active,
+.submenu.nested .active-lesson {
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  color: #064e3b;
+  font-weight: 800;
+}
+
+.sidebar-illustration,
+.sidebar-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.sidebar-illustration img,
+.sidebar-mascot {
+  width: 110px;
+  max-width: 100%;
+  max-height: 72px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.sidebar-illustration p,
+.sidebar-footer p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .panel-page-root,
+  .teacher-panel-layout,
+  .student-panel-layout {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .panel-layout,
+  .teacher-shell,
+  .student-shell {
+    grid-template-columns: 1fr;
+    width: min(100% - 32px, 900px);
+    gap: 24px;
+    padding: 24px 0 32px;
+    height: auto;
+    overflow: visible;
+  }
+
+  .panel-main,
+  .teacher-main-column,
+  .student-main-column {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .teacher-content,
+  .student-content {
+    overflow: visible;
+  }
+
+  .app-sidebar,
+  .teacher-sidebar,
+  .student-sidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-layout,
+  .teacher-shell,
+  .student-shell {
+    width: min(100% - 24px, 100%);
+    padding: 20px 0 28px;
+  }
+
+  .app-sidebar,
+  .teacher-sidebar,
+  .student-sidebar {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .sidebar-brand-title,
+  .sidebar-brand strong {
+    font-size: 1.15rem;
+  }
+
+  .sidebar-nav button,
+  .sidebar-nav .sidebar-nav-item {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .sidebar-illustration,
+  .sidebar-footer {
+    display: none;
+  }
+
+  .student-sidebar .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .student-sidebar .sidebar-nav > button,
+  .student-sidebar .sidebar-nav .sidebar-nav-item {
+    flex: 1 1 auto;
+    min-width: 110px;
+  }
+
+  .student-sidebar .sidebar-subnav,
+  .student-sidebar .submenu {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel-layout,
+  .teacher-shell,
+  .student-shell {
+    width: min(100% - 24px, 100%);
+    padding: 20px 0;
+  }
+}
