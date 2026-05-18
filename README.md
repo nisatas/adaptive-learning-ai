@@ -1,59 +1,214 @@
-# AdaptiveLearningAi
+# NeuroAdapt
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+**NeuroAdapt**, öğrencilerin öğrenme davranışlarını analiz ederek onlara daha uygun bir öğrenme deneyimi sunan AI destekli adaptif eğitim platformudur.
 
-## Development server
+Proje; öğrencinin quiz performansı, cevap süresi, hata yoğunluğu ve öğrenme davranışlarını değerlendirerek öğretmenlere anlamlı içgörüler üretir. Aynı zamanda öğrenciler için daha okunabilir, odaklanmayı kolaylaştıran ve kişiselleştirilmiş öğrenme arayüzleri sunar.
 
-To start a local development server, run:
+Bu proje, Kocaeli Hackathon kapsamında geliştirilmiştir ve Puq.ai workflow entegrasyonları ile zenginleştirilmiştir.
 
-```bash
-ng serve
-```
+---
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Problem
 
-## Code scaffolding
+Geleneksel eğitim platformları çoğu zaman tüm öğrencilere aynı arayüzü ve aynı öğrenme akışını sunar.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Ancak her öğrencinin öğrenme biçimi, dikkat süresi, okuma konforu ve desteğe ihtiyaç duyduğu alanlar farklıdır. Bu durum özellikle bireysel öğrenme desteğine ihtiyaç duyan öğrenciler için platform deneyimini zorlaştırabilir.
 
-```bash
-ng generate component component-name
-```
+NeuroAdapt bu problemi şu yaklaşımla çözer:
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- Öğrencinin davranış verilerini analiz eder.
+- Quiz sonuçlarını ve cevap sürelerini değerlendirir.
+- Öğretmene sınıf ve öğrenci bazlı AI destekli öneriler sunar.
+- Öğrenci arayüzünü daha erişilebilir ve kişiselleştirilmiş hale getirir.
+- Puq.ai workflow katmanı ile öğretmen ve öğrenci için akıllı çıktılar üretir.
 
-```bash
-ng generate --help
-```
+> NeuroAdapt herhangi bir tıbbi tanı koymaz. Amaç, öğrencinin öğrenme sürecindeki ihtiyaçlarını analiz ederek daha uygun bir öğrenme ortamı sağlamaktır.
 
-## Building
+---
 
-To build the project run:
+## Çözüm
 
-```bash
-ng build
-```
+NeuroAdapt iki ana kullanıcı rolüne odaklanır:
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Öğrenci
 
-## Running unit tests
+Öğrenci tarafında sistem:
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+- Ders içeriklerini görüntüler.
+- Quiz çözer.
+- Cevap süresi ve doğru/yanlış oranı analiz edilir.
+- Öğrenme deneyimi adaptif modlarla desteklenir.
+- Kişisel AI öğrenme rehberi sayesinde öğrenciye sade öneriler sunulur.
 
-```bash
-ng test
-```
+### Öğretmen
 
-## Running end-to-end tests
+Öğretmen tarafında sistem:
 
-For end-to-end (e2e) testing, run:
+- Sınıf genel performansını gösterir.
+- Desteğe ihtiyaç duyan öğrencileri listeler.
+- Zorlanılan konuları analiz eder.
+- Puq.ai destekli haftalık rapor üretir.
+- Öğrenci için destek planı önerir.
+- Öğretmen-öğrenci görüşmesi için planlama önerisi oluşturur.
 
-```bash
-ng e2e
-```
+---
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Öne Çıkan Özellikler
 
-## Additional Resources
+- AI destekli öğretmen dashboardu
+- Öğrenci performans analizi
+- Quiz tabanlı adaptif öğrenme akışı
+- Okuma kolaylığı modu
+- Odaklanma modu
+- Puq.ai workflow entegrasyonu
+- Haftalık AI rapor analizi
+- Öğrenci destek planı üretimi
+- Öğretmen-öğrenci görüşme planlama önerisi
+- Öğrenci için kişisel AI öğrenme rehberi
+- Modern ve responsive arayüz
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+---
+
+## Puq.ai Kullanımı
+
+Bu projede Puq.ai sadece basit bir chat cevabı üretmek için değil, platformun karar destek katmanını güçlendirmek için kullanılmıştır.
+
+Puq.ai kullanılan ana workflow alanları:
+
+### 1. Öğretmen Dashboard Analizi
+
+Öğretmen dashboardunda sınıf verileri analiz edilerek öğretmene sade ve aksiyon alınabilir bilgiler sunulur.
+
+Örnek çıktılar:
+
+- Sınıf genel durumu
+- En çok zorlanılan konu
+- Desteğe ihtiyaç duyan öğrenci grubu
+- Öğrenci performans eğilimleri
+- Öğretmen için önerilen aksiyonlar
+
+---
+
+### 2. Haftalık AI Rapor Workflow'u
+
+Bu workflow, öğretmenin haftalık sınıf performansını daha kolay yorumlamasını sağlar.
+
+Sistem:
+
+- Quiz sonuçlarını değerlendirir.
+- Sınıf ortalamasını analiz eder.
+- Zorlanılan konuları öne çıkarır.
+- Öğretmene haftalık aksiyon önerileri üretir.
+
+Amaç, öğretmenin ham verilerle uğraşmadan sınıfın öğrenme durumunu hızlıca anlayabilmesidir.
+
+---
+
+### 3. Öğrenci Destek Planı Workflow'u
+
+Bu workflow, belirli öğrenciler için öğrenme desteği önerileri üretir.
+
+Sistem:
+
+- Öğrencinin performansını analiz eder.
+- Yanlış yaptığı konu alanlarını değerlendirir.
+- Öğrenciye uygun destek önerileri sunar.
+- Öğretmene uygulanabilir kısa aksiyonlar verir.
+
+---
+
+### 4. Öğretmen-Öğrenci Görüşme Planlama Workflow'u
+
+Bu workflow, öğretmenin öğrenciyle yapacağı birebir görüşme için içerik ve zaman planlamasına yardımcı olur.
+
+Sistem:
+
+- Görüşme amacını belirler.
+- Öğrencinin ihtiyaç duyduğu destek alanlarını özetler.
+- Öğretmene görüşmede konuşabileceği başlıklar önerir.
+
+> Bu workflow demo kapsamında görüşme önerisi ve planı üretir. Harici bir Google Meet ya da takvim entegrasyonu zorunlu değildir.
+
+---
+
+### 5. Öğrenci Kişisel AI Rehberi
+
+Öğrenci tarafında Puq.ai, öğrencinin öğrenme sürecini destekleyen sade ve motive edici öneriler üretir.
+
+Örnek:
+
+- “Bu konuda biraz daha tekrar yapman faydalı olabilir.”
+- “Cevap süren iyi, ancak paragraf sorularında dikkatini artırman gerekiyor.”
+- “Bugün kısa bir tekrar ile ilerleyebilirsin.”
+
+---
+
+## Adaptif Öğrenme Modları
+
+NeuroAdapt, öğrencinin öğrenme deneyimini daha konforlu hale getirmek için farklı arayüz modları sunar.
+
+### Standart Mod
+
+Genel kullanım için varsayılan öğrenme arayüzüdür.
+
+### Okuma Kolaylığı Modu
+
+Metinlerin daha rahat okunmasını sağlar.
+
+Özellikler:
+
+- Daha geniş metin alanı
+- Daha okunabilir yazı boyutu
+- Daha sade içerik görünümü
+- Dikkat dağıtıcı öğelerin azaltılması
+
+### Odaklanma Modu
+
+Öğrencinin dikkatini tek bir içeriğe yoğunlaştırmasını sağlar.
+
+Özellikler:
+
+- Gereksiz görsel yoğunluğun azaltılması
+- Quiz ve konu içeriklerinin merkeze alınması
+- Daha sade ve temiz ekran düzeni
+
+---
+
+## Demo Akışı
+
+Demo sırasında önerilen kullanım akışı:
+
+1. Homepage gösterilir.
+2. Öğrenci paneline geçilir.
+3. Ders içeriği ve quiz akışı gösterilir.
+4. Adaptif öğrenme modları gösterilir.
+5. Öğretmen dashboarduna geçilir.
+6. Sınıf performansı ve öğrenci analizleri gösterilir.
+7. Puq.ai destekli workflow çıktıları anlatılır:
+   - Haftalık rapor
+   - Öğrenci destek planı
+   - Öğretmen-öğrenci görüşme önerisi
+   - Öğrenci kişisel AI rehberi
+
+---
+
+## Teknoloji Mimarisi
+
+```text
+Frontend
+   |
+   | HTTP Requests
+   v
+Backend API
+   |
+   | Business Logic
+   v
+Database
+   |
+   | Student / Quiz / Teacher Data
+   v
+Puq.ai Workflow Layer
+   |
+   | AI Generated Insights
+   v
+Teacher & Student Dashboards
